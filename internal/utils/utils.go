@@ -55,30 +55,17 @@ func DownloadRootFS(url string, dest string) error{
 	if err := os.MkdirAll(dest, 0755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %v", dest, err)
 	}
-
 	// Download the root filesystem tarball
-	resp, err := http.Get(url)
-	if err != nil {
+	if err := downloadFile(url, outputTarName); err != nil {
 		return fmt.Errorf("failed to download root filesystem: %v", err)
 	}
-	defer resp.Body.Close()
-
-	// Check if the response status is OK
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download root filesystem: %s", resp.Status)
-	}
-
-	// Create the tarball file
-	out, err := os.Create(outputTarName)
+	// Check if the downloaded file is a valid tarball
+	file, err := os.Open(outputTarName)
 	if err != nil {
-		return fmt.Errorf("failed to create tarball file: %v", err)
+		return fmt.Errorf("failed to open downloaded file: %v", err)
 	}
-	defer out.Close()
-
-	// Copy the response body to the tarball file
-	if _, err := io.Copy(out, resp.Body); err != nil {
-		return fmt.Errorf("failed to save root filesystem: %v", err)
-	}
+	defer file.Close()
+	
 	// Extract the tarball
 	if err := extractTarGz(outputTarName, dest); err != nil {
 		return fmt.Errorf("failed to extract root filesystem: %v", err)
@@ -86,6 +73,33 @@ func DownloadRootFS(url string, dest string) error{
 	// Remove the tarball after extraction
 	if err := os.Remove(outputTarName); err != nil {
 		return fmt.Errorf("failed to remove tarball: %v", err)
+	}
+	return nil
+}
+
+func downloadFile(url, dest string) error {
+	// Create the file
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check for HTTP errors
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download file: %s", resp.Status)
+	}
+
+	// Write the body to file
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return err
 	}
 	return nil
 }
