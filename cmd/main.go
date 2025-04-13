@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+
 	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/utils"
 )
@@ -17,10 +18,6 @@ func main() {
 		fmt.Println("In child process:")
 		must(syscall.Sethostname([]byte("container")))
 
-		// Mount necessary filesystems
-		must(syscall.Mount("proc", "/proc", "proc", 0, ""))
-		must(syscall.Mount("tmpfs", "/dev", "tmpfs", 0, ""))
-
 		// Perform pivot_root
 		must(os.MkdirAll("merged/oldroot", 0755))
 		must(syscall.PivotRoot("merged", "merged/oldroot"))
@@ -29,6 +26,12 @@ func main() {
 		// Unmount old root
 		must(syscall.Unmount("oldroot", syscall.MNT_DETACH))
 		must(os.Remove("oldroot"))
+
+		// Remount /proc in the new root
+		if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
+			fmt.Fprintf(os.Stderr, "Error remounting /proc: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Set PATH environment variable
 		must(os.Setenv("PATH", "/bin:"+os.Getenv("PATH")))
