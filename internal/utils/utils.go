@@ -65,7 +65,6 @@ func DownloadRootFS(url string, dest string) error{
 		return fmt.Errorf("failed to open downloaded file: %v", err)
 	}
 	defer file.Close()
-	
 	// Extract the tarball
 	if err := extractTarGz(outputTarName, dest); err != nil {
 		return fmt.Errorf("failed to extract root filesystem: %v", err)
@@ -146,7 +145,7 @@ func extractTarGz(gzipPath, dest string) error {
 				return err
 			}
 			// Create file
-			outFile, err := os.Create(target)
+			outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
 			if err != nil {
 				return err
 			}
