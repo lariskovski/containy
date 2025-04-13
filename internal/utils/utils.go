@@ -1,4 +1,4 @@
-package main
+package utils 
 
 import (
 	"fmt"
@@ -87,8 +87,6 @@ func DownloadRootFS(url string, dest string) error{
 	if err := os.Remove(outputTarName); err != nil {
 		return fmt.Errorf("failed to remove tarball: %v", err)
 	}
-	fmt.Println("Root filesystem downloaded and extracted successfully.")
-
 	return nil
 }
 
