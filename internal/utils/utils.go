@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"archive/tar"
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 func CreateDirectory(paths ...string) error {
@@ -166,4 +168,21 @@ func extractTarGz(gzipPath, dest string) error {
 	}
 
 	return nil
+}
+
+func GenerateHexID(input string, length int) string {
+	hash := sha256.Sum256([]byte(input))
+	hexString := hex.EncodeToString(hash[:])
+	if length > len(hexString) {
+		length = len(hexString)
+	}
+	return hexString[:length]
+}
+
+func CheckIfLayerExists(path string) bool {
+	// Check if the directory exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false // Directory does not exist
+	}
+	return true // Directory exists
 }

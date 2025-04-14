@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/lariskovski/containy/internal/build"
 	"github.com/lariskovski/containy/internal/run"
 )
 
@@ -25,6 +26,7 @@ func main() {
 	case "build":
 		// Placeholder for the build command
 		fmt.Println("Build command executed with args:", args[1:])
+		build.Build(args[1]) // Pass the file path to the build function
 		// Add logic for the build command here
 	default:
 		fmt.Printf("Unknown command: %s\n", command)

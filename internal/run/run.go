@@ -5,26 +5,55 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
-
-	"github.com/lariskovski/containy/internal/overlay"
-	"github.com/lariskovski/containy/internal/utils"
 )
 
-var rootfsUrl = "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz"
-
 func RunContainer(args []string) {
+	if len(args) < 2 {
+		fmt.Fprintf(os.Stderr, "Usage: run <overlay-dir> <command> [args...]\n")
+		os.Exit(1)
+	}
+
+	overlayDir := args[0]   // First argument is the overlay directory
+	commandArgs := args[1:] // Remaining arguments are the command and its arguments
+
 	if os.Args[0] == "/proc/self/exe" {
 		fmt.Println("In child process:")
-		must(syscall.Sethostname([]byte("container")))
+
+		err := syscall.Sethostname([]byte("container"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting hostname: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Perform pivot_root
-		must(os.MkdirAll("merged/oldroot", 0755))
-		must(syscall.PivotRoot("merged", "merged/oldroot"))
-		must(os.Chdir("/")) // Change working directory to new root
+		err = os.MkdirAll(overlayDir+"/oldroot", 0755)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating oldroot directory: %v\n", err)
+			os.Exit(1)
+		}
+
+		err = syscall.PivotRoot(overlayDir, overlayDir+"/oldroot")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error performing pivot_root: %v\n", err)
+			os.Exit(1)
+		}
+		err = os.Chdir("/") // Change working directory to new root
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error changing directory: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Unmount old root
-		must(syscall.Unmount("oldroot", syscall.MNT_DETACH))
-		must(os.Remove("oldroot"))
+		err = syscall.Unmount("oldroot", syscall.MNT_DETACH)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error unmounting old root: %v\n", err)
+			os.Exit(1)
+		}
+		err = os.Remove("oldroot")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error removing old root: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Remount /proc in the new root
 		if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
@@ -33,23 +62,30 @@ func RunContainer(args []string) {
 		}
 
 		// Set PATH environment variable
-		must(os.Setenv("PATH", "/bin:"+os.Getenv("PATH")))
+		err = os.Setenv("PATH", "/bin:"+os.Getenv("PATH"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting PATH: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Start the specified command or a shell
-		cmd := exec.Command(args[0], args[1:]...)
+		fmt.Println("Running command:", commandArgs)
+		cmd := exec.Command(commandArgs[0], commandArgs[1:]...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		must(cmd.Run())
+		err = cmd.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
+			os.Exit(1)
+		}	
 		return
 	}
 
-	fsSetup()
-
 	fmt.Println("Spawning child with new namespaces...")
 
-	// Pass "run" and the arguments to the child process
-	cmd := exec.Command("/proc/self/exe", append([]string{"run"}, args...)...)
+	// Pass "run", the overlay directory, and the arguments to the child process
+	cmd := exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -60,42 +96,10 @@ func RunContainer(args []string) {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
-	must(cmd.Run())
-}
-
-func must(err error) {
+	err := cmd.Run()
 	if err != nil {
-		panic(err)
-	}
-}
-
-func fsSetup() {
-	err := utils.CreateDirectory("lower", "upper", "work", "merged")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating directories: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Directories created successfully.")
-
-	// Download the root filesystem
-	err = utils.DownloadRootFS(rootfsUrl, "lower")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error downloading root filesystem: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Println("Root filesystem downloaded successfully.")
-
-	// Create the overlay filesystem
-	overlayFS := &overlay.OverlayFS{
-		LowerDir:  "lower",
-		UpperDir:  "upper",
-		WorkDir:   "work",
-		MergedDir: "merged",
-	}
-	err = overlayFS.Mount()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating overlay filesystem: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Println("Overlay filesystem created successfully.")
+	fmt.Println("Child process finished.")
 }
