@@ -63,7 +63,7 @@ func RunContainer(args []string) {
 		}
 
 		// Set PATH environment variable
-		err = os.Setenv("PATH", "/bin:"+os.Getenv("PATH"))
+		err = os.Setenv("PATH", "/bin:/sbin:"+os.Getenv("PATH"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error setting PATH: %v\n", err)
 			os.Exit(1)
