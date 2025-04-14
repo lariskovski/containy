@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -70,7 +71,8 @@ func RunContainer(args []string) {
 
 		// Start the specified command or a shell
 		fmt.Println("Running command:", commandArgs)
-		cmd := exec.Command(commandArgs[0], commandArgs[1:]...)
+		commandStr := strings.Join(commandArgs, " ")
+		cmd := exec.Command("/bin/sh", "-c", commandStr)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -78,7 +80,7 @@ func RunContainer(args []string) {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
 			os.Exit(1)
-		}	
+		}
 		return
 	}
 
