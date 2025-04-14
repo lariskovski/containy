@@ -81,7 +81,7 @@ func runCmd(arg string, state *BuildState) error {
 
 	// Use the current layer's merged directory as the working directory
 	previousLayer := state.CurrentLayer.MergedDir
-	fmt.Printf("Executing command in layer: %s\n", previousLayer)
+	
 
 	ofs := overlay.OverlayFS{
 		Instruction: "RUN",
@@ -91,10 +91,13 @@ func runCmd(arg string, state *BuildState) error {
 		WorkDir:   "work",
 		MergedDir: "merged",
 	}
+
+	// Create a new overlay filesystem for the command
 	overlayFS, err := ofs.Setup(arg)
 	if err != nil {
 		return fmt.Errorf("failed to setup overlay filesystem: %w", err)
 	}
+	fmt.Printf("Executing command in layer: %s\n", overlayFS.MergedDir)
 	err = overlayFS.Mount()
 	if err != nil {
 		return fmt.Errorf("failed to mount overlay filesystem: %w", err)
