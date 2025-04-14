@@ -1,4 +1,2 @@
-lower
-upper
-merged
-work
+tmp/
+cleanup.sh
