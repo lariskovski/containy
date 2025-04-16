@@ -8,6 +8,8 @@ import (
 	"syscall"
 )
 
+var defaultPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 func RunContainer(args []string) {
 	if len(args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: run <overlay-dir> <command> [args...]\n")
@@ -23,6 +25,13 @@ func RunContainer(args []string) {
 		err := syscall.Sethostname([]byte("container"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error setting hostname: %v\n", err)
+			os.Exit(1)
+		}
+
+		// mount --make-rprivate /
+		err = syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error making mount private: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -63,7 +72,7 @@ func RunContainer(args []string) {
 		}
 
 		// Set PATH environment variable
-		err = os.Setenv("PATH", "/bin:/sbin:"+os.Getenv("PATH"))
+		err = os.Setenv("PATH", defaultPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error setting PATH: %v\n", err)
 			os.Exit(1)
