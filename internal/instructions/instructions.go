@@ -70,7 +70,7 @@ func from(arg string, state *BuildState) error {
 
 	// Update the state with the current layer
 	state.CurrentLayer = *overlayFS
-	fmt.Println("Overlay filesystem mounted successfully.")
+	fmt.Println("Overlay filesystem mounted successfully. " + overlayFS.MergedDir)
 	return nil
 }
 
