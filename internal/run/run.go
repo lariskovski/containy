@@ -1,23 +1,22 @@
 package run
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"github.com/lariskovski/containy/internal/config"
 )
-
 var defaultPATH = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
 func RunContainer(args []string) {
 	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: run <overlay-dir> <command> [args...]\n")
+		config.Log.Errorf("Usage: run <overlay-dir> <command> [args...]")
 		os.Exit(1)
 	}
 
-	overlayDir := args[0]   // First argument is the overlay directory
-	commandArgs := args[1:] // Remaining arguments are the command and its arguments
+	overlayDir := args[0]
+	commandArgs := args[1:]
 
 	if os.Args[0] == "/proc/self/exe" {
 		handleChildProcess(overlayDir, commandArgs)
@@ -28,62 +27,64 @@ func RunContainer(args []string) {
 }
 
 func handleChildProcess(overlayDir string, commandArgs []string) {
-	fmt.Println("In child process:")
+	config.Log.Debugf("In child process")
 
 	if err := setupNamespaces(overlayDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error setting up namespaces: %v\n", err)
-		os.Exit(1)
+		config.Log.Fatalf("Error setting up namespaces: %v", err)
 	}
 
 	if err := runCommand(commandArgs); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
-		os.Exit(1)
+		config.Log.Fatalf("Error running command: %v", err)
 	}
 }
 
 func setupNamespaces(overlayDir string) error {
+	config.Log.Debugf("Setting up namespaces")
+
 	if err := syscall.Sethostname([]byte("container")); err != nil {
-		return fmt.Errorf("setting hostname: %w", err)
+		return logError("setting hostname", err)
 	}
 
 	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
-		return fmt.Errorf("making mount private: %w", err)
+		return logError("making mount private", err)
 	}
 
 	if err := performPivotRoot(overlayDir); err != nil {
-		return fmt.Errorf("performing pivot_root: %w", err)
+		return logError("performing pivot_root", err)
 	}
 
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		return fmt.Errorf("remounting /proc: %w", err)
+		return logError("remounting /proc", err)
 	}
 
 	return os.Setenv("PATH", defaultPATH)
 }
 
 func performPivotRoot(overlayDir string) error {
+	config.Log.Debugf("Performing pivot_root with overlayDir: %s", overlayDir)
+
 	oldRoot := overlayDir + "/oldroot"
 	if err := os.MkdirAll(oldRoot, 0755); err != nil {
-		return fmt.Errorf("creating oldroot directory: %w", err)
+		return logError("creating oldroot directory", err)
 	}
 
 	if err := syscall.PivotRoot(overlayDir, oldRoot); err != nil {
-		return fmt.Errorf("pivot_root: %w", err)
+		return logError("pivot_root", err)
 	}
 
 	if err := os.Chdir("/"); err != nil {
-		return fmt.Errorf("changing directory: %w", err)
+		return logError("changing directory", err)
 	}
 
 	if err := syscall.Unmount("oldroot", syscall.MNT_DETACH); err != nil {
-		return fmt.Errorf("unmounting old root: %w", err)
+		return logError("unmounting old root", err)
 	}
 
 	return os.Remove("oldroot")
 }
 
 func runCommand(commandArgs []string) error {
-	fmt.Println("Running command:", commandArgs)
+	config.Log.Debugf("Running command: %v", commandArgs)
 	commandStr := strings.Join(commandArgs, " ")
 	cmd := exec.Command("/bin/sh", "-c", commandStr)
 	cmd.Stdin = os.Stdin
@@ -93,7 +94,7 @@ func runCommand(commandArgs []string) error {
 }
 
 func spawnChildProcess(overlayDir string, commandArgs []string) {
-	fmt.Println("Spawning child with new namespaces...")
+	config.Log.Debugf("Spawning child with new namespaces")
 
 	cmd := exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
 	cmd.Stdin = os.Stdin
@@ -107,8 +108,12 @@ func spawnChildProcess(overlayDir string, commandArgs []string) {
 	}
 
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
-		os.Exit(1)
+		config.Log.Fatalf("Error running command: %v", err)
 	}
-	fmt.Println("Child process finished.")
+	config.Log.Debugf("Child process finished")
+}
+
+func logError(context string, err error) error {
+	config.Log.Errorf("Error %s: %v", context, err)
+	return err
 }

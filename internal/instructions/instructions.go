@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/parser"
 	"github.com/lariskovski/containy/internal/run"
@@ -22,13 +23,16 @@ var handlers = map[string]func(string, *BuildState) error{
 }
 
 func ExecuteInstructions(instructions []parser.Instruction) error {
+	config.Log.Info("Executing instructions")
 	state := &BuildState{}
 	for _, instr := range instructions {
 		handler, ok := handlers[instr.Command]
 		if !ok {
+			config.Log.Errorf("Unknown instruction: %s", instr.Command)
 			return fmt.Errorf("unknown instruction: %s", instr.Command)
 		}
 		if err := handler(instr.Args, state); err != nil {
+			config.Log.Errorf("%s failed: %v", instr.Command, err)
 			return fmt.Errorf("%s failed: %w", instr.Command, err)
 		}
 	}
@@ -36,41 +40,44 @@ func ExecuteInstructions(instructions []parser.Instruction) error {
 }
 
 func from(arg string, state *BuildState) error {
-	fmt.Println("Using base image:", arg)
+	config.Log.Debugf("Processing FROM instruction with argument: %s", arg)
 
 	inst := "FROM " + arg
 
 	// Create overlay filesystem for the base image
 	temp := overlay.OverlayFS{
 		Instruction: "FROM",
-		ID:        utils.GenerateHexID(inst, overlay.IDLength),
-		LowerDir:  "lower",
-		UpperDir:  "upper",
-		WorkDir:   "work",
-		MergedDir: "merged",
+		ID:          utils.GenerateHexID(inst, overlay.IDLength),
+		LowerDir:    "lower",
+		UpperDir:    "upper",
+		WorkDir:     "work",
+		MergedDir:   "merged",
 	}
 	overlayFS, err := temp.Setup()
 	if err != nil {
+		config.Log.Errorf("Failed to setup overlay filesystem: %v", err)
 		return fmt.Errorf("failed to setup overlay filesystem: %w", err)
 	}
 
 	err = utils.DownloadRootFS(arg, overlayFS.LowerDir)
 	if err != nil {
+		config.Log.Errorf("Failed to download root filesystem: %v", err)
 		return fmt.Errorf("failed to download root filesystem: %w", err)
 	}
 	err = overlayFS.Mount()
 	if err != nil {
+		config.Log.Errorf("Failed to mount overlay filesystem: %v", err)
 		return fmt.Errorf("failed to mount overlay filesystem: %w", err)
 	}
 
 	// Update the state with the current layer
 	state.CurrentLayer = *overlayFS
-	fmt.Println("Overlay filesystem mounted successfully. " + overlayFS.MergedDir)
+	config.Log.Debugf("Overlay filesystem mounted successfully at %s", overlayFS.MergedDir)
 	return nil
 }
 
 func runCmd(arg string, state *BuildState) error {
-	fmt.Println("Running shell command:", arg)
+	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
 
 	inst := "RUN " + arg
 
@@ -84,7 +91,7 @@ func runCmd(arg string, state *BuildState) error {
 	newLowerDir := previousLayer
 	if state.CurrentLayer.LowerDir != "" && state.CurrentLayer.Instruction != "FROM" {
 		newLowerDir = state.CurrentLayer.LowerDir + ":" + previousLayer
-		fmt.Println("New lower directory:", newLowerDir)
+		config.Log.Debugf("New lower directory:", newLowerDir)
 	}
 
 	ofs := overlay.OverlayFS{
@@ -99,11 +106,13 @@ func runCmd(arg string, state *BuildState) error {
 	// Create a new overlay filesystem for the command
 	overlayFS, err := ofs.Setup()
 	if err != nil {
+		config.Log.Errorf("Failed to setup overlay filesystem: %v", err)
 		return fmt.Errorf("failed to setup overlay filesystem: %w", err)
 	}
-	fmt.Printf("Executing command in layer: %s\n", overlayFS.MergedDir)
+	config.Log.Infof("Executing command in layer: %s", overlayFS.MergedDir)
 	err = overlayFS.Mount()
 	if err != nil {
+		config.Log.Errorf("Failed to mount overlay filesystem: %v", err)
 		return fmt.Errorf("failed to mount overlay filesystem: %w", err)
 	}
 
@@ -122,6 +131,7 @@ func runCmd(arg string, state *BuildState) error {
 }
 
 func copyCmd(arg string, state *BuildState) error {
+	config.Log.Debugf("Processing COPY instruction with argument: %s", arg)
 	// parts := strings.Fields(arg)
 	// if len(parts) != 2 {
 	// 	return fmt.Errorf("invalid COPY args: %s", arg)
@@ -138,6 +148,7 @@ func copyCmd(arg string, state *BuildState) error {
 }
 
 func cmd(arg string, state *BuildState) error {
+	config.Log.Debugf("Processing CMD instruction with argument: %s", arg)
 	fmt.Println("Final command (not running it yet):", arg)
 	// Optional: actually run it, or simulate it.
 	return nil
