@@ -5,3 +5,5 @@ mount | grep overlay | awk '{print $3}' | while read mountpoint; do
   echo "Unmounting $mountpoint"
   umount "$mountpoint"
 done
+
+sudo rm -rf tmp
