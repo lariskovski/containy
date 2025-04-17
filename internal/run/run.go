@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-var defaultPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+var defaultPATH = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 func RunContainer(args []string) {
 	if len(args) < 2 {
@@ -20,82 +20,81 @@ func RunContainer(args []string) {
 	commandArgs := args[1:] // Remaining arguments are the command and its arguments
 
 	if os.Args[0] == "/proc/self/exe" {
-		fmt.Println("In child process:")
-
-		err := syscall.Sethostname([]byte("container"))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error setting hostname: %v\n", err)
-			os.Exit(1)
-		}
-
-		// mount --make-rprivate /
-		err = syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error making mount private: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Perform pivot_root
-		err = os.MkdirAll(overlayDir+"/oldroot", 0755)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating oldroot directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		err = syscall.PivotRoot(overlayDir, overlayDir+"/oldroot")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error performing pivot_root: %v\n", err)
-			os.Exit(1)
-		}
-		err = os.Chdir("/") // Change working directory to new root
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error changing directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Unmount old root
-		err = syscall.Unmount("oldroot", syscall.MNT_DETACH)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error unmounting old root: %v\n", err)
-			os.Exit(1)
-		}
-		err = os.Remove("oldroot")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error removing old root: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Remount /proc in the new root
-		if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-			fmt.Fprintf(os.Stderr, "Error remounting /proc: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Set PATH environment variable
-		err = os.Setenv("PATH", defaultPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error setting PATH: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Start the specified command or a shell
-		fmt.Println("Running command:", commandArgs)
-		commandStr := strings.Join(commandArgs, " ")
-		cmd := exec.Command("/bin/sh", "-c", commandStr)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
-			os.Exit(1)
-		}
+		handleChildProcess(overlayDir, commandArgs)
 		return
 	}
 
+	spawnChildProcess(overlayDir, commandArgs)
+}
+
+func handleChildProcess(overlayDir string, commandArgs []string) {
+	fmt.Println("In child process:")
+
+	if err := setupNamespaces(overlayDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error setting up namespaces: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := runCommand(commandArgs); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func setupNamespaces(overlayDir string) error {
+	if err := syscall.Sethostname([]byte("container")); err != nil {
+		return fmt.Errorf("setting hostname: %w", err)
+	}
+
+	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
+		return fmt.Errorf("making mount private: %w", err)
+	}
+
+	if err := performPivotRoot(overlayDir); err != nil {
+		return fmt.Errorf("performing pivot_root: %w", err)
+	}
+
+	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
+		return fmt.Errorf("remounting /proc: %w", err)
+	}
+
+	return os.Setenv("PATH", defaultPATH)
+}
+
+func performPivotRoot(overlayDir string) error {
+	oldRoot := overlayDir + "/oldroot"
+	if err := os.MkdirAll(oldRoot, 0755); err != nil {
+		return fmt.Errorf("creating oldroot directory: %w", err)
+	}
+
+	if err := syscall.PivotRoot(overlayDir, oldRoot); err != nil {
+		return fmt.Errorf("pivot_root: %w", err)
+	}
+
+	if err := os.Chdir("/"); err != nil {
+		return fmt.Errorf("changing directory: %w", err)
+	}
+
+	if err := syscall.Unmount("oldroot", syscall.MNT_DETACH); err != nil {
+		return fmt.Errorf("unmounting old root: %w", err)
+	}
+
+	return os.Remove("oldroot")
+}
+
+func runCommand(commandArgs []string) error {
+	fmt.Println("Running command:", commandArgs)
+	commandStr := strings.Join(commandArgs, " ")
+	cmd := exec.Command("/bin/sh", "-c", commandStr)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func spawnChildProcess(overlayDir string, commandArgs []string) {
 	fmt.Println("Spawning child with new namespaces...")
 
-	// Pass "run", the overlay directory, and the arguments to the child process
 	cmd := exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -107,8 +106,7 @@ func RunContainer(args []string) {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running command: %v\n", err)
 		os.Exit(1)
 	}
