@@ -38,7 +38,7 @@ func ParseFile(path string) ([]Line, error) {
 
 		lineType := strings.ToUpper(fields[0])
 		args := strings.Join(fields[1:], " ")
-		
+
 		lines = append(lines, Line{Type: lineType, Args: args})
 	}
 

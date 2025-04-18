@@ -1,15 +1,15 @@
 package utils
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"archive/tar"
-	"compress/gzip"
-	"crypto/sha256"
-	"encoding/hex"
 
 	"github.com/lariskovski/containy/internal/config"
 )
@@ -46,7 +46,7 @@ func DownloadRootFS(url string, dest string) error {
 			config.Log.Errorf("Failed to check destination directory %s: %v", dest, err)
 			return fmt.Errorf("failed to check destination directory %s: %v", dest, err)
 		}
-	}	
+	}
 
 	// Check if lower directory has no files
 	if _, err := os.Stat(dest); err == nil {
