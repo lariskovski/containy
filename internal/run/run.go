@@ -8,7 +8,7 @@ import (
 
 	"github.com/lariskovski/containy/internal/config"
 )
-var defaultPATH = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 func RunContainer(args []string) {
 	if len(args) < 2 {
 		config.Log.Errorf("Usage: run <overlay-dir> <command> [args...]")
@@ -57,7 +57,7 @@ func setupNamespaces(overlayDir string) error {
 		return logError("remounting /proc", err)
 	}
 
-	return os.Setenv("PATH", defaultPATH)
+	return os.Setenv("PATH", config.DefaultPATH)
 }
 
 func performPivotRoot(overlayDir string) error {
