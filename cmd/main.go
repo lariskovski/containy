@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/lariskovski/containy/internal/build"
+	"github.com/lariskovski/containy/internal/image"
 	"github.com/lariskovski/containy/internal/run"
 )
 
@@ -14,7 +14,7 @@ func main() {
 			Short: "Build a container",
 			Args:  cobra.ExactArgs(1),
 			Run: func(cmd *cobra.Command, args []string) {
-				build.Build(args[0])
+				image.Build(args[0])
 			},
 		},
 		&cobra.Command{
