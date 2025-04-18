@@ -2,24 +2,24 @@ package parser
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 )
 
-type Instruction struct {
-	Command string
-	Args    string
+// Line represents a generic parsed line
+type Line struct {
+	Type string
+	Args string
 }
 
-func ParseFile(path string) ([]Instruction, error) {
+func ParseFile(path string) ([]Line, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var instructions []Instruction
+	var lines []Line
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
@@ -36,21 +36,15 @@ func ParseFile(path string) ([]Instruction, error) {
 			continue
 		}
 
-		command := strings.ToUpper(fields[0])
+		lineType := strings.ToUpper(fields[0])
 		args := strings.Join(fields[1:], " ")
-
-		// Optional: only accept known Dockerfile commands
-		switch command {
-		case "FROM", "RUN", "COPY", "CMD":
-			instructions = append(instructions, Instruction{Command: command, Args: args})
-		default:
-			fmt.Printf("Unknown command: %s\n", command)
-		}
+		
+		lines = append(lines, Line{Type: lineType, Args: args})
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	return instructions, nil
+	return lines, nil
 }
