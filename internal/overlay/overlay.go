@@ -8,9 +8,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var baseOverlayDir = "tmp/build/layers/"
-var IDLength = 10
-
 type OverlayFS struct {
 	Instruction string
 	ID          string
@@ -22,7 +19,7 @@ type OverlayFS struct {
 
 func (o *OverlayFS) Setup() (*OverlayFS, error) {
 	config.Log.Debugf("Setting up overlay filesystem with ID: %s", o.ID)
-	baseDir := baseOverlayDir + o.ID + "/"
+	baseDir := config.BaseOverlayDir + o.ID + "/"
 	// Create lowerDir only if the instruction is FROM
 	if o.Instruction == "FROM" {
 		o.LowerDir = baseDir + o.LowerDir

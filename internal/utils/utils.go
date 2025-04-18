@@ -198,7 +198,8 @@ func extractTarGz(gzipPath, dest string) error {
 	return nil
 }
 
-func GenerateHexID(input string, length int) string {
+func GenerateHexID(input string) string {
+	length := config.IDLength
 	config.Log.Debugf("Generating hex ID for input: %s", input)
 	hash := sha256.Sum256([]byte(input))
 	hexString := hex.EncodeToString(hash[:])

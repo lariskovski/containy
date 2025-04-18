@@ -64,7 +64,7 @@ func from(arg string, state *BuildState) error {
 	// Create overlay filesystem for the base image
 	temp := overlay.OverlayFS{
 		Instruction: "FROM",
-		ID:          utils.GenerateHexID(inst, overlay.IDLength),
+		ID:          utils.GenerateHexID(inst),
 		LowerDir:    "lower",
 		UpperDir:    "upper",
 		WorkDir:     "work",
@@ -113,7 +113,7 @@ func runCmd(arg string, state *BuildState) error {
 
 	ofs := overlay.OverlayFS{
 		Instruction: "RUN",
-		ID:          utils.GenerateHexID(inst, overlay.IDLength),
+		ID:          utils.GenerateHexID(inst),
 		LowerDir:    newLowerDir,
 		UpperDir:    "upper",
 		WorkDir:     "work",
