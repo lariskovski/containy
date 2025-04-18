@@ -9,6 +9,9 @@ import (
 	"github.com/lariskovski/containy/internal/config"
 )
 
+// Container namespace flags for isolating the container environment.
+const containerNamespaceFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS | syscall.CLONE_NEWPID
+
 // Create initializes and runs a new container process.
 // It takes a slice of arguments where args[0] is the overlay directory path
 // and the remaining args are the command and its arguments to be executed
@@ -79,14 +82,11 @@ func execCommand(overlayDir string, commandArgs []string, spawnChild bool) (*exe
 	if spawnChild {
 		cmd = exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Cloneflags: syscall.CLONE_NEWUTS |
-				syscall.CLONE_NEWNS |
-				syscall.CLONE_NEWPID,
+			Cloneflags: containerNamespaceFlags,
 			Unshareflags: syscall.CLONE_NEWNS,
 		}
 	} else {
-		commandStr := strings.Join(commandArgs, " ")
-		cmd = exec.Command("/bin/sh", "-c", commandStr)
+		cmd = exec.Command("/bin/sh", "-c", strings.Join(commandArgs, " "))
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
