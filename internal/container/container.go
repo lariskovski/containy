@@ -33,35 +33,45 @@ func handleChildProcess(overlayDir string, commandArgs []string) {
 		config.Log.Fatalf("Error setting up namespaces: %v", err)
 	}
 
-	if err := runCommand(commandArgs); err != nil {
+	cmd, err := execCommand(overlayDir, commandArgs, false); 
+	if err != nil {
+		config.Log.Fatalf("Error creating command: %v", err)
+	}
+
+	if err := cmd.Run(); err != nil {
 		config.Log.Fatalf("Error running command: %v", err)
 	}
 }
 
-func runCommand(commandArgs []string) error {
+func execCommand(overlayDir string, commandArgs []string, spawnChild bool) (*exec.Cmd, error) {
 	config.Log.Debugf("Running command: %v", commandArgs)
-	commandStr := strings.Join(commandArgs, " ")
-	cmd := exec.Command("/bin/sh", "-c", commandStr)
+	
+	var cmd *exec.Cmd
+
+	if spawnChild {
+		cmd = exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Cloneflags: syscall.CLONE_NEWUTS |
+				syscall.CLONE_NEWNS |
+				syscall.CLONE_NEWPID,
+			Unshareflags: syscall.CLONE_NEWNS,
+		}
+	} else {
+		commandStr := strings.Join(commandArgs, " ")
+		cmd = exec.Command("/bin/sh", "-c", commandStr)
+	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return  cmd, nil
 }
 
 func spawnChildProcess(overlayDir string, commandArgs []string) {
 	config.Log.Debugf("Spawning child with new namespaces")
-
-	cmd := exec.Command("/proc/self/exe", append([]string{"run", overlayDir}, commandArgs...)...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWUTS |
-			syscall.CLONE_NEWNS |
-			syscall.CLONE_NEWPID,
-		Unshareflags: syscall.CLONE_NEWNS,
+	cmd, err := execCommand(overlayDir, commandArgs, true)
+	if err != nil {
+		config.Log.Fatalf("Error creating command: %v", err)
 	}
-
 	if err := cmd.Run(); err != nil {
 		config.Log.Fatalf("Error running command: %v", err)
 	}
