@@ -6,7 +6,7 @@ import (
 
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/overlay"
-	"github.com/lariskovski/containy/internal/run"
+	"github.com/lariskovski/containy/internal/container"
 	"github.com/lariskovski/containy/internal/utils"
 )
 
@@ -57,7 +57,7 @@ func runCmd(arg string, state *BuildState) error {
 	// Prepend the overlayFS.LowerDir to the args slice
 	command := append([]string{overlayFS.MergedDir}, args...)
 
-	run.RunContainer(command)
+	container.Create(command)
 
 	// Update the state with the current layer
 	state.CurrentLayer = *overlayFS
