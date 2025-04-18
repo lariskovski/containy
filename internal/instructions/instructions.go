@@ -22,7 +22,7 @@ var handlers = map[string]func(string, *BuildState) error{
 	// "CMD":  cmd,
 }
 
-func ValidateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
+func validateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
 	var instructions []parser.Line
 	for _, line := range lines {
 		if !isValidCommand(line.Type) {
@@ -40,7 +40,7 @@ func isValidCommand(cmd string) bool {
 
 func ExecuteInstructions(lines []parser.Line) error {
 	config.Log.Info("Executing instructions")
-	instructions, err := ValidateAndConvertLines(lines)
+	instructions, err := validateAndConvertLines(lines)
 	if err != nil {
 		return err
 	}
