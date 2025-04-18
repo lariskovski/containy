@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -12,10 +13,12 @@ type Line struct {
 	Args string
 }
 
+// ParseFile reads a file line by line, parses each line into a Line struct, and returns a slice of parsed lines.
+// It skips empty lines and lines starting with a '#' (comments).
 func ParseFile(path string) ([]Line, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
 	}
 	defer file.Close()
 
@@ -30,21 +33,32 @@ func ParseFile(path string) ([]Line, error) {
 			continue
 		}
 
-		// Split command and the rest
-		fields := strings.Fields(line)
-		if len(fields) == 0 {
-			continue
+		// Parse the command and arguments
+		parsedLine, err := parseLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse line: %w", err)
 		}
 
-		lineType := strings.ToUpper(fields[0])
-		args := strings.Join(fields[1:], " ")
-
-		lines = append(lines, Line{Type: lineType, Args: args})
+		lines = append(lines, parsedLine)
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading file %s: %w", path, err)
 	}
 
 	return lines, nil
+}
+
+// parseLine splits a line into its type (command) and arguments.
+// It returns a Line struct containing the parsed type and arguments.
+func parseLine(line string) (Line, error) {
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return Line{}, fmt.Errorf("empty or invalid line")
+	}
+
+	lineType := strings.ToUpper(fields[0])
+	args := strings.Join(fields[1:], " ")
+
+	return Line{Type: lineType, Args: args}, nil
 }
