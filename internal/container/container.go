@@ -1,4 +1,4 @@
-package run
+package container
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 	"github.com/lariskovski/containy/internal/config"
 )
 
-func RunContainer(args []string) {
+func Create(args []string) {
 	if len(args) < 2 {
 		config.Log.Errorf("Usage: run <overlay-dir> <command> [args...]")
 		os.Exit(1)

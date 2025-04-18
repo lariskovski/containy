@@ -8,7 +8,6 @@ import (
 	"github.com/lariskovski/containy/internal/utils"
 )
 
-
 func from(arg string, state *BuildState) error {
 	config.Log.Debugf("Processing FROM instruction with argument: %s", arg)
 

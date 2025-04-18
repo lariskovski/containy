@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/lariskovski/containy/internal/container"
 	"github.com/lariskovski/containy/internal/image"
-	"github.com/lariskovski/containy/internal/run"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func main() {
 			Short: "Run a container",
 			Args:  cobra.MinimumNArgs(2),
 			Run: func(cmd *cobra.Command, args []string) {
-				run.RunContainer(args)
+				container.Create(args)
 			},
 		},
 	)
