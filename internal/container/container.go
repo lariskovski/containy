@@ -38,51 +38,6 @@ func handleChildProcess(overlayDir string, commandArgs []string) {
 	}
 }
 
-func setupNamespaces(overlayDir string) error {
-	config.Log.Debugf("Setting up namespaces")
-
-	if err := syscall.Sethostname([]byte("container")); err != nil {
-		return logError("setting hostname", err)
-	}
-
-	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
-		return logError("making mount private", err)
-	}
-
-	if err := performPivotRoot(overlayDir); err != nil {
-		return logError("performing pivot_root", err)
-	}
-
-	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		return logError("remounting /proc", err)
-	}
-
-	return os.Setenv("PATH", config.DefaultPATH)
-}
-
-func performPivotRoot(overlayDir string) error {
-	config.Log.Debugf("Performing pivot_root with overlayDir: %s", overlayDir)
-
-	oldRoot := overlayDir + "/oldroot"
-	if err := os.MkdirAll(oldRoot, 0755); err != nil {
-		return logError("creating oldroot directory", err)
-	}
-
-	if err := syscall.PivotRoot(overlayDir, oldRoot); err != nil {
-		return logError("pivot_root", err)
-	}
-
-	if err := os.Chdir("/"); err != nil {
-		return logError("changing directory", err)
-	}
-
-	if err := syscall.Unmount("oldroot", syscall.MNT_DETACH); err != nil {
-		return logError("unmounting old root", err)
-	}
-
-	return os.Remove("oldroot")
-}
-
 func runCommand(commandArgs []string) error {
 	config.Log.Debugf("Running command: %v", commandArgs)
 	commandStr := strings.Join(commandArgs, " ")
