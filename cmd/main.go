@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/lariskovski/containy/internal/image"
 	"github.com/lariskovski/containy/internal/run"
+	"github.com/spf13/cobra"
 )
 
 func main() {
