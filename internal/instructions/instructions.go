@@ -18,22 +18,39 @@ type BuildState struct {
 var handlers = map[string]func(string, *BuildState) error{
 	"FROM": from,
 	"RUN":  runCmd,
-	"COPY": copyCmd,
-	"CMD":  cmd,
+	// "COPY": copyCmd,
+	// "CMD":  cmd,
 }
 
-func ExecuteInstructions(instructions []parser.Instruction) error {
+func ValidateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
+	var instructions []parser.Line
+	for _, line := range lines {
+		if !isValidCommand(line.Type) {
+			return nil, fmt.Errorf("unknown command: %s", line.Type)
+		}
+		instructions = append(instructions, parser.Line{Type: line.Type, Args: line.Args})
+	}
+	return instructions, nil
+}
+
+func isValidCommand(cmd string) bool {
+	_, ok := handlers[cmd]
+	return ok
+}
+
+func ExecuteInstructions(lines []parser.Line) error {
 	config.Log.Info("Executing instructions")
+	instructions, err := ValidateAndConvertLines(lines)
+	if err != nil {
+		return err
+	}
+
 	state := &BuildState{}
 	for _, instr := range instructions {
-		handler, ok := handlers[instr.Command]
-		if !ok {
-			config.Log.Errorf("Unknown instruction: %s", instr.Command)
-			return fmt.Errorf("unknown instruction: %s", instr.Command)
-		}
+		handler := handlers[instr.Type]
 		if err := handler(instr.Args, state); err != nil {
-			config.Log.Errorf("%s failed: %v", instr.Command, err)
-			return fmt.Errorf("%s failed: %w", instr.Command, err)
+			config.Log.Errorf("%s failed: %v", instr.Type, err)
+			return fmt.Errorf("%s failed: %w", instr.Type, err)
 		}
 	}
 	return nil
@@ -127,29 +144,5 @@ func runCmd(arg string, state *BuildState) error {
 	// Update the state with the current layer
 	state.CurrentLayer = *overlayFS
 
-	return nil
-}
-
-func copyCmd(arg string, state *BuildState) error {
-	config.Log.Debugf("Processing COPY instruction with argument: %s", arg)
-	// parts := strings.Fields(arg)
-	// if len(parts) != 2 {
-	// 	return fmt.Errorf("invalid COPY args: %s", arg)
-	// }
-
-	// src, dest := parts[0], parts[1]
-	// fmt.Printf("Copying %s to %s\n", src, dest)
-	// input, err := os.ReadFile(src)
-	// if err != nil {
-	// 	return err
-	// }
-	// return os.WriteFile(dest, input, 0644)
-	return nil
-}
-
-func cmd(arg string, state *BuildState) error {
-	config.Log.Debugf("Processing CMD instruction with argument: %s", arg)
-	fmt.Println("Final command (not running it yet):", arg)
-	// Optional: actually run it, or simulate it.
 	return nil
 }
