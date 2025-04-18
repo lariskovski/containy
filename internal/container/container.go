@@ -26,6 +26,18 @@ func Create(args []string) {
 	spawnChildProcess(overlayDir, commandArgs)
 }
 
+func spawnChildProcess(overlayDir string, commandArgs []string) {
+	config.Log.Debugf("Spawning child with new namespaces")
+	cmd, err := execCommand(overlayDir, commandArgs, true)
+	if err != nil {
+		config.Log.Fatalf("Error creating command: %v", err)
+	}
+	if err := cmd.Run(); err != nil {
+		config.Log.Fatalf("Error running command: %v", err)
+	}
+	config.Log.Debugf("Child process finished")
+}
+
 func handleChildProcess(overlayDir string, commandArgs []string) {
 	config.Log.Debugf("In child process")
 
@@ -64,18 +76,6 @@ func execCommand(overlayDir string, commandArgs []string, spawnChild bool) (*exe
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return  cmd, nil
-}
-
-func spawnChildProcess(overlayDir string, commandArgs []string) {
-	config.Log.Debugf("Spawning child with new namespaces")
-	cmd, err := execCommand(overlayDir, commandArgs, true)
-	if err != nil {
-		config.Log.Fatalf("Error creating command: %v", err)
-	}
-	if err := cmd.Run(); err != nil {
-		config.Log.Fatalf("Error running command: %v", err)
-	}
-	config.Log.Debugf("Child process finished")
 }
 
 func logError(context string, err error) error {
