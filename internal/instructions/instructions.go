@@ -108,7 +108,7 @@ func runCmd(arg string, state *BuildState) error {
 	newLowerDir := previousLayer
 	if state.CurrentLayer.LowerDir != "" && state.CurrentLayer.Instruction != "FROM" {
 		newLowerDir = state.CurrentLayer.LowerDir + ":" + previousLayer
-		config.Log.Debugf("New lower directory:", newLowerDir)
+		config.Log.Debugf("New lower directory: %s", newLowerDir)
 	}
 
 	ofs := overlay.OverlayFS{
