@@ -4,8 +4,15 @@ import (
 	"fmt"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/parser"
 )
+
+// Instruction represents a single instruction in the Dockerfile.
+// It is an interface that defines the methods to get the type and arguments of the instruction.
+// The type of instruction can be "FROM", "RUN", "COPY", etc.
+type Instruction interface {
+	GetType() string
+	GetArgs() string
+}
 
 // BuildState holds the current state of the build process.
 type BuildState struct {
@@ -20,33 +27,26 @@ var handlers = map[string]func(string, *BuildState) error{
 	// "CMD":  cmd,
 }
 
-func ExecuteInstructions(lines []parser.Line) error {
+func Execute(instructions []Instruction) error {
 	config.Log.Info("Executing instructions")
-	instructions, err := validateAndConvertLines(lines)
-	if err != nil {
-		return err
-	}
 
-	state := &BuildState{}
-	for _, instr := range instructions {
-		handler := handlers[instr.Type]
-		if err := handler(instr.Args, state); err != nil {
-			config.Log.Errorf("%s failed: %v", instr.Type, err)
-			return fmt.Errorf("%s failed: %w", instr.Type, err)
+	buildState := &BuildState{}
+
+	for _, instruction := range instructions {
+		instructionType := instruction.GetType()
+		if !isValidCommand(instructionType) {
+			return fmt.Errorf("unknown command: %s", instructionType)
+		}
+		instructionArgs := instruction.GetArgs()
+
+		handler := handlers[instructionType]
+		if err := handler(instructionArgs, buildState); err != nil {
+			config.Log.Errorf("%s failed: %v", instructionType, err)
+			return fmt.Errorf("%s failed: %w", instructionType, err)
 		}
 	}
+
 	return nil
-}
-
-func validateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
-	var instructions []parser.Line
-	for _, line := range lines {
-		if !isValidCommand(line.Type) {
-			return nil, fmt.Errorf("unknown command: %s", line.Type)
-		}
-		instructions = append(instructions, parser.Line{Type: line.Type, Args: line.Args})
-	}
-	return instructions, nil
 }
 
 func isValidCommand(cmd string) bool {

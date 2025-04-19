@@ -8,13 +8,20 @@ import (
 
 func Build(filepath string) {
 	config.Log.Debugf("Building container from file: %s", filepath)
-	fileInstructions, err := parser.ParseFile(filepath)
+	lines, err := parser.ParseFile(filepath)
 	if err != nil {
 		config.Log.Fatalf("Failed to parse file: %v", err)
 	}
-	// Execute the parsed instructions
-	err = instructions.ExecuteInstructions(fileInstructions)
-	if err != nil {
-		config.Log.Fatalf("Failed to execute instructions: %v", err)
+	// Convert lines to the expected type
+	instructionsList := make([]instructions.Instruction, len(lines))
+	for i, line := range lines {
+		instructionsList[i] = instructions.Instruction(line)
 	}
+
+	// Execute the parsed instructions
+	if err := instructions.Execute(instructionsList); err != nil {
+		config.Log.Fatalf("Failed to execute instruction: %v", err)
+	}
+
+	config.Log.Infof("Container build completed successfully.")
 }
