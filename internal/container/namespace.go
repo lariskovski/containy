@@ -7,7 +7,7 @@ import (
 	"github.com/lariskovski/containy/internal/config"
 )
 
-// setupNamespaces sets up the necessary namespaces for the container environment.
+// setupNamespaces sets up the necessary namespaces for the container environment
 func setupNamespaces(overlayDir string) error {
 	config.Log.Debugf("Setting up namespaces in overlayDir: %s", overlayDir)
 
@@ -27,9 +27,13 @@ func setupNamespaces(overlayDir string) error {
 		return logError("performing pivot_root", err)
 	}
 
+	// proc filesystem is used for process information
+	// and is required for the container to function properly
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
 		return logError("remounting /proc", err)
 	}
 
+	// path is used to find executables
+	// and is required for the container to function properly
 	return os.Setenv("PATH", config.DefaultPATH)
 }
