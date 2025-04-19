@@ -2,8 +2,10 @@ package instructions
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
+	"github.com/lariskovski/containy/internal/utils"
 )
 
 // Instruction represents a single instruction in the Dockerfile.
@@ -39,6 +41,18 @@ func Execute(instructions []Instruction) error {
 		}
 		instructionArgs := instruction.GetArgs()
 
+		// check if layer exists
+		id := utils.GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
+		if LayerExists(id) {
+			config.Log.Infof("Layer already exists for instruction: %s", instructionType)
+			continue
+		}
+
+		config.Log.Infof("Executing instruction: %s with args: %s", instructionType, instructionArgs)
+
+		// Execute the instruction using the appropriate handler
+		// The handler is a function that takes the instruction arguments and the build state
+		// The handler is looked up in the handlers map using the instruction type
 		handler := handlers[instructionType]
 		if err := handler(instructionArgs, buildState); err != nil {
 			config.Log.Errorf("%s failed: %v", instructionType, err)

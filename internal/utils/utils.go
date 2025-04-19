@@ -208,12 +208,3 @@ func GenerateHexID(input string) string {
 	}
 	return hexString[:length]
 }
-
-func CheckIfLayerExists(path string) bool {
-	config.Log.Debugf("Checking if layer exists at path: %s", path)
-	// Check if the directory exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false // Directory does not exist
-	}
-	return true // Directory exists
-}

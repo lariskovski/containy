@@ -19,3 +19,7 @@ type Layer interface {
 func NewLayer(lowerDir, id string, isBaseLayer bool) (Layer, error) {
 	return overlay.NewOverlayFS(lowerDir, id, isBaseLayer)
 }
+
+func LayerExists(id string) bool {
+	return overlay.CheckIfLayerExists(id)
+}
