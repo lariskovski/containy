@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/container"
 	"github.com/lariskovski/containy/internal/utils"
 )
-
 
 func runCmd(arg string, state *BuildState) error {
 	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
@@ -20,39 +18,39 @@ func runCmd(arg string, state *BuildState) error {
 	// Use the current layer's merged directory as the base for the next layer's lower directory
 	var previousLayer string
 	if state.Instruction == "FROM" {
-		previousLayer = state.CurrentLayer.LowerDir
+		previousLayer = state.CurrentLayer.GetLowerDir()
 	} else {
-		previousLayer = state.CurrentLayer.UpperDir
+		previousLayer = state.CurrentLayer.GetUpperDir()
 	}
 	newLowerDir := previousLayer
-	if state.CurrentLayer.LowerDir != "" && state.Instruction != "FROM" {
-		newLowerDir = state.CurrentLayer.LowerDir + ":" + previousLayer
+	if state.CurrentLayer.GetLowerDir() != "" && state.Instruction != "FROM" {
+		newLowerDir = state.CurrentLayer.GetLowerDir() + ":" + previousLayer
 		config.Log.Debugf("New lower directory: %s", newLowerDir)
 	}
 
-	config.Log.Debugf("Creating new overlay filesystem with lowerDir: %s", newLowerDir)
-	overlayFS, err := overlay.NewOverlayFS(newLowerDir, id, false)
+	config.Log.Debugf("Creating new layer with lowerDir: %s", newLowerDir)
+	layer, err := NewLayer(newLowerDir, id, false)
 	if err != nil {
-		config.Log.Errorf("Failed to setup overlay filesystem: %v", err)
-		return fmt.Errorf("failed to setup overlay filesystem: %w", err)
+		config.Log.Errorf("Failed to setup layer: %v", err)
+		return fmt.Errorf("failed to setup layer: %w", err)
 	}
-	config.Log.Infof("Executing command in layer: %s", overlayFS.MergedDir)
-	err = overlayFS.Mount()
+	config.Log.Infof("Executing command in layer: %s", layer.GetMergedDir())
+	err = layer.Mount()
 	if err != nil {
-		config.Log.Errorf("Failed to mount overlay filesystem: %v", err)
-		return fmt.Errorf("failed to mount overlay filesystem: %w", err)
+		config.Log.Errorf("Failed to mount layer: %v", err)
+		return fmt.Errorf("failed to mount layer: %w", err)
 	}
 
 	// Split the arg string into a slice of strings
 	args := strings.Fields(arg)
 
-	// Prepend the overlayFS.LowerDir to the args slice
-	command := append([]string{overlayFS.MergedDir}, args...)
+	// Prepend the layer merged dir to the args slice
+	command := append([]string{layer.GetMergedDir()}, args...)
 
 	container.Create(command)
 
 	// Update the state with the current layer
-	state.CurrentLayer = *overlayFS
+	state.CurrentLayer = layer
 	state.Instruction = "RUN"
 
 	return nil
