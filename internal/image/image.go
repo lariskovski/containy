@@ -8,7 +8,7 @@ import (
 
 func Build(filepath string) {
 	config.Log.Debugf("Building container from file: %s", filepath)
-	lines, err := parser.ParseFile(filepath)
+	lines, err := parser.Parse(filepath)
 	if err != nil {
 		config.Log.Fatalf("Failed to parse file: %v", err)
 	}

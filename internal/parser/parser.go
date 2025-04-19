@@ -13,9 +13,9 @@ type Line struct {
 	Args string
 }
 
-// ParseFile reads a file line by line, parses each line into a Line struct, and returns a slice of parsed lines.
+// Parse reads a file line by line, parses each line into a Line struct, and returns a slice of parsed lines.
 // It skips empty lines and lines starting with a '#' (comments).
-func ParseFile(path string) ([]Line, error) {
+func Parse(path string) ([]Line, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
