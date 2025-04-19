@@ -20,22 +20,6 @@ var handlers = map[string]func(string, *BuildState) error{
 	// "CMD":  cmd,
 }
 
-func validateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
-	var instructions []parser.Line
-	for _, line := range lines {
-		if !isValidCommand(line.Type) {
-			return nil, fmt.Errorf("unknown command: %s", line.Type)
-		}
-		instructions = append(instructions, parser.Line{Type: line.Type, Args: line.Args})
-	}
-	return instructions, nil
-}
-
-func isValidCommand(cmd string) bool {
-	_, ok := handlers[cmd]
-	return ok
-}
-
 func ExecuteInstructions(lines []parser.Line) error {
 	config.Log.Info("Executing instructions")
 	instructions, err := validateAndConvertLines(lines)
@@ -52,4 +36,20 @@ func ExecuteInstructions(lines []parser.Line) error {
 		}
 	}
 	return nil
+}
+
+func validateAndConvertLines(lines []parser.Line) ([]parser.Line, error) {
+	var instructions []parser.Line
+	for _, line := range lines {
+		if !isValidCommand(line.Type) {
+			return nil, fmt.Errorf("unknown command: %s", line.Type)
+		}
+		instructions = append(instructions, parser.Line{Type: line.Type, Args: line.Args})
+	}
+	return instructions, nil
+}
+
+func isValidCommand(cmd string) bool {
+	_, ok := handlers[cmd]
+	return ok
 }
