@@ -10,6 +10,7 @@ import (
 
 type BuildState struct {
 	CurrentLayer overlay.OverlayFS
+	Instruction string
 }
 
 var handlers = map[string]func(string, *BuildState) error{

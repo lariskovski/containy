@@ -15,31 +15,23 @@ func runCmd(arg string, state *BuildState) error {
 	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
 
 	inst := "RUN " + arg
+	id := utils.GenerateHexID(inst)
 
 	// Use the current layer's merged directory as the base for the next layer's lower directory
 	var previousLayer string
-	if state.CurrentLayer.Instruction == "FROM" {
+	if state.Instruction == "FROM" {
 		previousLayer = state.CurrentLayer.LowerDir
 	} else {
 		previousLayer = state.CurrentLayer.UpperDir
 	}
 	newLowerDir := previousLayer
-	if state.CurrentLayer.LowerDir != "" && state.CurrentLayer.Instruction != "FROM" {
+	if state.CurrentLayer.LowerDir != "" && state.Instruction != "FROM" {
 		newLowerDir = state.CurrentLayer.LowerDir + ":" + previousLayer
 		config.Log.Debugf("New lower directory: %s", newLowerDir)
 	}
 
-	ofs := overlay.OverlayFS{
-		Instruction: "RUN",
-		ID:          utils.GenerateHexID(inst),
-		LowerDir:    newLowerDir,
-		UpperDir:    "upper",
-		WorkDir:     "work",
-		MergedDir:   "merged",
-	}
-
-	// Create a new overlay filesystem for the command
-	overlayFS, err := ofs.Setup()
+	config.Log.Debugf("Creating new overlay filesystem with lowerDir: %s", newLowerDir)
+	overlayFS, err := overlay.NewOverlayFS(newLowerDir, id, false)
 	if err != nil {
 		config.Log.Errorf("Failed to setup overlay filesystem: %v", err)
 		return fmt.Errorf("failed to setup overlay filesystem: %w", err)
@@ -61,6 +53,7 @@ func runCmd(arg string, state *BuildState) error {
 
 	// Update the state with the current layer
 	state.CurrentLayer = *overlayFS
+	state.Instruction = "RUN"
 
 	return nil
 }
