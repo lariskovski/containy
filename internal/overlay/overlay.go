@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/utils"
@@ -71,3 +72,13 @@ func (o *OverlayFS) GetLowerDir() string  { return o.LowerDir }
 func (o *OverlayFS) GetUpperDir() string  { return o.UpperDir }
 func (o *OverlayFS) GetWorkDir() string   { return o.WorkDir }
 func (o *OverlayFS) GetMergedDir() string { return o.MergedDir }
+
+func CheckIfLayerExists(id string) bool {
+	basePath := config.BaseOverlayDir + id + "/"
+	config.Log.Debugf("Checking if layer exists at path: %s", basePath)
+	// Check if the directory exists
+	if _, err := os.Stat(basePath); os.IsNotExist(err) {
+		return false // Directory does not exist
+	}
+	return true // Directory exists
+}
