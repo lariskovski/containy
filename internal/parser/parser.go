@@ -62,3 +62,10 @@ func parseLine(line string) (Line, error) {
 
 	return Line{Type: lineType, Args: args}, nil
 }
+
+func (l Line) GetType() string {
+	return l.Type
+}
+func (l Line) GetArgs() string {
+	return l.Args
+}
