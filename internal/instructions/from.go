@@ -7,6 +7,10 @@ import (
 	"github.com/lariskovski/containy/internal/utils"
 )
 
+// The FROM instruction specifies the base image to use for the container.
+// Sets up the base layer for the container image by downloading and mounting the specified root filesystem.
+// It creates a new layer and mounts it to the specified directory.
+// The function also updates the BuildState with the current layer and instruction.
 func from(arg string, state *BuildState) error {
 	config.Log.Infof("Processing FROM instruction with argument: %s", arg)
 

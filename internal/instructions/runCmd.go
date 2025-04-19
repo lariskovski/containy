@@ -9,6 +9,9 @@ import (
 	"github.com/lariskovski/containy/internal/utils"
 )
 
+// The RUN instruction executes a command in the container's filesystem.
+// It creates a new layer on top of the current layer and mounts it.
+// The function also updates the BuildState with the current layer and instruction.
 func runCmd(arg string, state *BuildState) error {
 	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
 
