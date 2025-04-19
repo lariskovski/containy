@@ -9,7 +9,6 @@ import (
 )
 
 type OverlayFS struct {
-	Instruction string
 	ID          string
 	LowerDir    string
 	UpperDir    string
@@ -17,34 +16,45 @@ type OverlayFS struct {
 	MergedDir   string
 }
 
-func (o *OverlayFS) Setup() (*OverlayFS, error) {
-	config.Log.Debugf("Setting up overlay filesystem with ID: %s", o.ID)
-	baseDir := config.BaseOverlayDir + o.ID + "/"
-	// Create lowerDir only if the instruction is FROM
-	if o.Instruction == "FROM" {
-		o.LowerDir = baseDir + o.LowerDir
-		if err := utils.CreateDirectory(o.LowerDir); err != nil {
+// NewOverlayFS creates and sets up a new OverlayFS instance
+func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
+	config.Log.Debugf("Creating new overlay filesystem with ID: %s", id)
+
+	baseDir := config.BaseOverlayDir + id + "/"
+	upperDir := baseDir + "upper"
+	workDir := baseDir + "work"
+	mergedDir := baseDir + "merged"
+
+	// For FROM instructions, create a lowerDir
+	if isBaseLayer {
+		lowerDir = baseDir + "lower"
+		if err := utils.CreateDirectory(lowerDir); err != nil {
 			config.Log.Errorf("Failed to create lowerDir overlay directory: %v", err)
 			return nil, fmt.Errorf("failed to create lowerDir overlay directory: %v", err)
 		}
 	}
-	o.UpperDir = baseDir + o.UpperDir
-	o.WorkDir = baseDir + o.WorkDir
-	o.MergedDir = baseDir + o.MergedDir
 
-	// Create directories if they don't exist
-	if err := utils.CreateDirectory(o.UpperDir, o.WorkDir, o.MergedDir); err != nil {
+	overlay := &OverlayFS{
+		ID:          id,
+		LowerDir:    lowerDir,
+		UpperDir:    upperDir,
+		WorkDir:     workDir,
+		MergedDir:   mergedDir,
+	}
+
+	if err := utils.CreateDirectory(upperDir, workDir, mergedDir); err != nil {
 		config.Log.Errorf("Failed to create overlay directories: %v", err)
 		return nil, fmt.Errorf("failed to create overlay directories: %v", err)
 	}
-	return o, nil
+
+	return overlay, nil
 }
 
 func (o *OverlayFS) Mount() error {
 	config.Log.Debugf("Mounting overlay filesystem at %s", o.MergedDir)
 	// Build overlay mount options
 	data := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", o.LowerDir, o.UpperDir, o.WorkDir)
-
+	config.Log.Debugf("Mount options: %s", data)
 	// Call mount syscall directly
 	err := unix.Mount("overlay", o.MergedDir, "overlay", 0, data)
 	if err != nil {
