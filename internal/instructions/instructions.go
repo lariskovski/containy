@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/parser"
 )
 
+// BuildState holds the current state of the build process.
 type BuildState struct {
-	CurrentLayer overlay.OverlayFS
-	Instruction string
+	CurrentLayer Layer
+	Instruction  string
 }
 
 var handlers = map[string]func(string, *BuildState) error{
@@ -53,6 +53,3 @@ func ExecuteInstructions(lines []parser.Line) error {
 	}
 	return nil
 }
-
-
-

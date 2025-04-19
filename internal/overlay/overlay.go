@@ -9,11 +9,11 @@ import (
 )
 
 type OverlayFS struct {
-	ID          string
-	LowerDir    string
-	UpperDir    string
-	WorkDir     string
-	MergedDir   string
+	ID        string
+	LowerDir  string
+	UpperDir  string
+	WorkDir   string
+	MergedDir string
 }
 
 // NewOverlayFS creates and sets up a new OverlayFS instance
@@ -35,11 +35,11 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 	}
 
 	overlay := &OverlayFS{
-		ID:          id,
-		LowerDir:    lowerDir,
-		UpperDir:    upperDir,
-		WorkDir:     workDir,
-		MergedDir:   mergedDir,
+		ID:        id,
+		LowerDir:  lowerDir,
+		UpperDir:  upperDir,
+		WorkDir:   workDir,
+		MergedDir: mergedDir,
 	}
 
 	if err := utils.CreateDirectory(upperDir, workDir, mergedDir); err != nil {
@@ -64,3 +64,10 @@ func (o *OverlayFS) Mount() error {
 
 	return nil
 }
+
+// Implement the instructions.Layer interface
+func (o *OverlayFS) GetID() string        { return o.ID }
+func (o *OverlayFS) GetLowerDir() string  { return o.LowerDir }
+func (o *OverlayFS) GetUpperDir() string  { return o.UpperDir }
+func (o *OverlayFS) GetWorkDir() string   { return o.WorkDir }
+func (o *OverlayFS) GetMergedDir() string { return o.MergedDir }
