@@ -8,7 +8,7 @@ import (
 )
 
 func setupNamespaces(overlayDir string) error {
-	config.Log.Debugf("Setting up namespaces")
+	config.Log.Debugf("Setting up namespaces in overlayDir: %s", overlayDir)
 
 	if err := syscall.Sethostname([]byte("container")); err != nil {
 		return logError("setting hostname", err)
