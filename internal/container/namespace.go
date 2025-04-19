@@ -7,6 +7,7 @@ import (
 	"github.com/lariskovski/containy/internal/config"
 )
 
+// setupNamespaces sets up the necessary namespaces for the container environment.
 func setupNamespaces(overlayDir string) error {
 	config.Log.Debugf("Setting up namespaces in overlayDir: %s", overlayDir)
 
@@ -14,6 +15,10 @@ func setupNamespaces(overlayDir string) error {
 		return logError("setting hostname", err)
 	}
 
+	// makes the mount namespace private
+	// this is a workaround for the fact that the mount namespace
+	// is not private by default in some Linux distributions
+	// and to prevent the host from seeing mounts made by the container
 	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
 		return logError("making mount private", err)
 	}
