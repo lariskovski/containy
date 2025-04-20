@@ -23,13 +23,11 @@ func CreateDirectory(paths ...string) error {
 			continue
 		} else if !os.IsNotExist(err) {
 			// An error occurred while checking the directory
-			config.Log.Errorf("Failed to check directory %s: %v", path, err)
-			return fmt.Errorf("failed to check directory %s: %v", path, err)
+			return fmt.Errorf("failed to check directory %s: %w", path, err)
 		}
 		// Directory does not exist, create it
 		if err := os.MkdirAll(path, 0755); err != nil {
-			config.Log.Errorf("Failed to create directory %s: %v", path, err)
-			return fmt.Errorf("failed to create directory %s: %v", path, err)
+			return fmt.Errorf("failed to create directory %s: %w", path, err)
 		}
 	}
 	return nil
@@ -43,8 +41,7 @@ func DownloadRootFS(url string, dest string) error {
 	// Check if the destination directory exists
 	if _, err := os.Stat(dest); err != nil {
 		if !os.IsNotExist(err) {
-			config.Log.Errorf("Failed to check destination directory %s: %v", dest, err)
-			return fmt.Errorf("failed to check destination directory %s: %v", dest, err)
+			return fmt.Errorf("failed to check destination directory %s: %w", dest, err)
 		}
 	}
 
@@ -53,11 +50,9 @@ func DownloadRootFS(url string, dest string) error {
 		// Directory exists, check if it's empty
 		files, err := os.ReadDir(dest)
 		if err != nil {
-			config.Log.Errorf("Failed to read directory %s: %v", dest, err)
-			return fmt.Errorf("failed to read directory %s: %v", dest, err)
+			return fmt.Errorf("failed to read directory %s: %w", dest, err)
 		}
 		if len(files) > 0 {
-			config.Log.Errorf("Destination directory %s is not empty", dest)
 			return fmt.Errorf("destination directory %s is not empty", dest)
 		}
 	}

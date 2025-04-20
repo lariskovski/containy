@@ -80,11 +80,8 @@ func Execute(instructions []Instruction) error {
 		config.Log.Infof("Executing instruction: %s with args: %s", instructionType, instructionArgs)
 
 		// Execute the instruction using the appropriate handler
-		// The handler is a function that takes the instruction arguments and the build state
-		// The handler is looked up in the handlers map using the instruction type
 		handler := handlers[instructionType]
 		if err := handler(instructionArgs, buildState); err != nil {
-			config.Log.Errorf("%s failed: %v", instructionType, err)
 			return fmt.Errorf("%s failed: %w", instructionType, err)
 		}
 	}
