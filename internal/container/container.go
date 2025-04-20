@@ -29,14 +29,7 @@ const containerNamespaceFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS | sys
 //     the remaining elements are the command and its arguments
 //
 // The function will terminate the process if errors are encountered.
-// In production code, error handling could be improved by returning errors
-// instead of calling os.Exit or log.Fatal.
 func Create(args []string) {
-	if len(args) < 2 {
-		config.Log.Errorf("Usage: run <overlay-dir> <command> [args...]")
-		os.Exit(1)
-	}
-
 	overlayDir := args[0]
 	commandArgs := args[1:]
 
