@@ -18,7 +18,27 @@ func runCmd(arg string, state *BuildState) error {
 	inst := "RUN " + arg
 	id := utils.GenerateHexID(inst)
 
-	// Use the current layer's merged directory as the base for the next layer's lower directory
+	newLowerDir := buildLowerDir(state)
+	layer, err := NewLayer(newLowerDir, id, false)
+	if err != nil {
+		return fmt.Errorf("failed to setup layer: %w", err)
+	}
+
+	if err := layer.Mount(); err != nil {
+		return fmt.Errorf("failed to mount layer: %w", err)
+	}
+
+	command := prepareCommandArgs(layer.GetMergedDir(), arg)
+	// Consider: return an error if container.Create fails, instead of calling it directly
+	container.Create(command)
+
+	state.CurrentLayer = layer
+	state.Instruction = "RUN"
+	return nil
+}
+
+// buildLowerDir builds the lowerdir string for the new layer.
+func buildLowerDir(state *BuildState) string {
 	var previousLayer string
 	if state.Instruction == "FROM" {
 		previousLayer = state.CurrentLayer.GetLowerDir()
@@ -28,33 +48,12 @@ func runCmd(arg string, state *BuildState) error {
 	newLowerDir := previousLayer
 	if state.CurrentLayer.GetLowerDir() != "" && state.Instruction != "FROM" {
 		newLowerDir = state.CurrentLayer.GetLowerDir() + ":" + previousLayer
-		config.Log.Debugf("New lower directory: %s", newLowerDir)
 	}
+	return newLowerDir
+}
 
-	config.Log.Debugf("Creating new layer with lowerDir: %s", newLowerDir)
-	layer, err := NewLayer(newLowerDir, id, false)
-	if err != nil {
-		config.Log.Errorf("Failed to setup layer: %v", err)
-		return fmt.Errorf("failed to setup layer: %w", err)
-	}
-	config.Log.Infof("Executing command in layer: %s", layer.GetMergedDir())
-	err = layer.Mount()
-	if err != nil {
-		config.Log.Errorf("Failed to mount layer: %v", err)
-		return fmt.Errorf("failed to mount layer: %w", err)
-	}
-
-	// Split the arg string into a slice of strings
+// prepareCommandArgs prepares the command arguments for container execution.
+func prepareCommandArgs(mergedDir, arg string) []string {
 	args := strings.Fields(arg)
-
-	// Prepend the layer merged dir to the args slice
-	command := append([]string{layer.GetMergedDir()}, args...)
-
-	container.Create(command)
-
-	// Update the state with the current layer
-	state.CurrentLayer = layer
-	state.Instruction = "RUN"
-
-	return nil
+	return append([]string{mergedDir}, args...)
 }
