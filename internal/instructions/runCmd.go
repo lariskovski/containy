@@ -9,9 +9,23 @@ import (
 	"github.com/lariskovski/containy/internal/utils"
 )
 
-// The RUN instruction executes a command in the container's filesystem.
-// It creates a new layer on top of the current layer and mounts it.
-// The function also updates the BuildState with the current layer and instruction.
+// runCmd implements the RUN instruction from a container build file.
+// It executes commands in a new container layer and captures any changes
+// to the filesystem.
+//
+// The function:
+// 1. Creates a unique layer ID based on the RUN command
+// 2. Builds the proper lowerdir path based on previous layers
+// 3. Creates and mounts a new overlay filesystem
+// 4. Executes the specified command inside the container
+// 5. Updates the build state with the new layer information
+//
+// Parameters:
+//   - arg: The command to execute (e.g., "apt-get update")
+//   - state: The current build state containing layer information
+//
+// Returns:
+//   - error: Any error encountered during the process
 func runCmd(arg string, state *BuildState) error {
 	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
 
@@ -37,7 +51,18 @@ func runCmd(arg string, state *BuildState) error {
 	return nil
 }
 
-// buildLowerDir builds the lowerdir string for the new layer.
+// buildLowerDir constructs the lowerdir path for overlayfs mounting.
+//
+// The lowerdir for a RUN instruction depends on the previous instruction:
+//   - After FROM: Uses the lower directory of the base image
+//   - After other instructions: Chains the current layer's upper directory
+//     with previous lower directories
+//
+// Parameters:
+//   - state: The current build state containing layer information
+//
+// Returns:
+//   - string: The formatted lowerdir path for overlayfs mount
 func buildLowerDir(state *BuildState) string {
 	var previousLayer string
 	if state.Instruction == "FROM" {
@@ -52,7 +77,18 @@ func buildLowerDir(state *BuildState) string {
 	return newLowerDir
 }
 
-// prepareCommandArgs prepares the command arguments for container execution.
+// prepareCommandArgs constructs the argument slice for container execution.
+//
+// This function prepends the container's merged directory path to the
+// command arguments, enabling the container runtime to execute the command
+// in the correct filesystem context.
+//
+// Parameters:
+//   - mergedDir: The path to the merged overlay filesystem
+//   - arg: The raw command string to be executed
+//
+// Returns:
+//   - []string: A slice containing the merged directory followed by command arguments
 func prepareCommandArgs(mergedDir, arg string) []string {
 	args := strings.Fields(arg)
 	return append([]string{mergedDir}, args...)
