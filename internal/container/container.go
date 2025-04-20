@@ -1,6 +1,7 @@
 package container
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -29,16 +30,19 @@ const containerNamespaceFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS | sys
 //     the remaining elements are the command and its arguments
 //
 // The function will terminate the process if errors are encountered.
-func Create(args []string) {
+func Create(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("insufficient arguments: expected at least overlay directory and command")
+	}
+
 	overlayDir := args[0]
 	commandArgs := args[1:]
 
 	if os.Args[0] == "/proc/self/exe" {
-		handleChildProcess(overlayDir, commandArgs)
-		return
+		return handleChildProcess(overlayDir, commandArgs)
 	}
 
-	spawnChildProcess(overlayDir, commandArgs)
+	return spawnChildProcess(overlayDir, commandArgs)
 }
 
 // spawnChildProcess creates a new isolated process for the container.
@@ -48,16 +52,17 @@ func Create(args []string) {
 // Parameters:
 //   - overlayDir: Path to the overlay filesystem's merged directory
 //   - commandArgs: The command and arguments to run inside the container
-func spawnChildProcess(overlayDir string, commandArgs []string) {
+func spawnChildProcess(overlayDir string, commandArgs []string) error {
 	config.Log.Debugf("Spawning child with new namespaces")
 	cmd, err := execCommand(overlayDir, commandArgs, true)
 	if err != nil {
-		config.Log.Fatalf("Error creating command: %v", err)
+		return fmt.Errorf("error creating command: %w", err)
 	}
 	if err := cmd.Run(); err != nil {
-		config.Log.Fatalf("Error running command: %v", err)
+		return fmt.Errorf("error running command: %w", err)
 	}
 	config.Log.Debugf("Child process finished")
+	return nil
 }
 
 // handleChildProcess sets up the containerized environment and executes
@@ -73,21 +78,23 @@ func spawnChildProcess(overlayDir string, commandArgs []string) {
 // Parameters:
 //   - overlayDir: Path to the overlay filesystem's merged directory
 //   - commandArgs: The command and arguments to run inside the container
-func handleChildProcess(overlayDir string, commandArgs []string) {
+func handleChildProcess(overlayDir string, commandArgs []string) error {
 	config.Log.Debugf("In child process")
 
 	if err := setupNamespaces(overlayDir); err != nil {
-		config.Log.Fatalf("Error setting up namespaces: %v", err)
+		return fmt.Errorf("error setting up namespaces: %w", err)
 	}
 
 	cmd, err := execCommand(overlayDir, commandArgs, false)
 	if err != nil {
-		config.Log.Fatalf("Error creating command: %v", err)
+		return fmt.Errorf("error creating command: %w", err)
 	}
 
 	if err := cmd.Run(); err != nil {
-		config.Log.Fatalf("Error running command: %v", err)
+		return fmt.Errorf("error running command: %w", err)
 	}
+
+	return nil
 }
 
 // execCommand creates an exec.Cmd instance for container execution.

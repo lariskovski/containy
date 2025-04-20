@@ -62,8 +62,7 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 	if isBaseLayer {
 		lowerDir = baseDir + "lower"
 		if err := utils.CreateDirectory(lowerDir); err != nil {
-			config.Log.Errorf("Failed to create lowerDir overlay directory: %v", err)
-			return nil, fmt.Errorf("failed to create lowerDir overlay directory: %v", err)
+			return nil, fmt.Errorf("failed to create lowerDir overlay directory: %w", err)
 		}
 	}
 
@@ -76,8 +75,7 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 	}
 
 	if err := utils.CreateDirectory(upperDir, workDir, mergedDir); err != nil {
-		config.Log.Errorf("Failed to create overlay directories: %v", err)
-		return nil, fmt.Errorf("failed to create overlay directories: %v", err)
+		return nil, fmt.Errorf("failed to create overlay directories: %w", err)
 	}
 
 	return overlay, nil
@@ -102,8 +100,7 @@ func (o *OverlayFS) Mount() error {
 	// Call mount syscall directly
 	err := unix.Mount("overlay", o.MergedDir, "overlay", 0, data)
 	if err != nil {
-		config.Log.Errorf("Failed to mount overlay filesystem: %v", err)
-		return fmt.Errorf("failed to mount overlay filesystem: %v", err)
+		return fmt.Errorf("failed to mount overlay filesystem: %w", err)
 	}
 
 	return nil
