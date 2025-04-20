@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,5 +14,9 @@ func init() {
 		TimestampFormat: "2006-01-02 15:04:05",
 		FullTimestamp:   true,
 	})
-	Log.SetLevel(logrus.InfoLevel)
+	if os.Getenv("LOG_LEVEL") == "DEBUG" {
+		Log.SetLevel(logrus.DebugLevel)
+	} else {
+		Log.SetLevel(logrus.InfoLevel)
+	}
 }
