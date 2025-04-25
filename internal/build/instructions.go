@@ -48,8 +48,6 @@ var handlers = map[string]func(string, *BuildState) error{
 // Returns:
 //   - error: Any error encountered during execution, or nil on success
 func execute(instruction Instruction, state *BuildState) error {
-	config.Log.Info("Executing instructions")
-
 	instructionType := instruction.GetType()
 	instructionArgs := instruction.GetArgs()
 
@@ -113,7 +111,7 @@ func from(arg string, state *BuildState) error {
 // Returns:
 //   - error: Any error encountered during the process
 func runCmd(arg string, state *BuildState) error {
-	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
+	config.Log.Debugf("Processing RUN instruction with argument: %s", arg)
 
 	inst := "RUN " + arg
 	id := GenerateHexID(inst)
