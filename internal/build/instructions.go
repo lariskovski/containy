@@ -64,7 +64,7 @@ func execute(instruction Instruction, state *BuildState) error {
 // It creates a new layer and mounts it to the specified directory.
 // The function also updates the BuildState with the current layer and instruction.
 func from(arg string, state *BuildState) error {
-	config.Log.Infof("Processing FROM instruction with argument: %s", arg)
+	config.Log.Debugf("Processing FROM instruction with argument: %s", arg)
 
 	inst := "FROM " + arg
 	id := GenerateHexID(inst)
