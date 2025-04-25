@@ -56,7 +56,6 @@ func prepareCommandArgs(mergedDir, arg string) []string {
 	return append([]string{mergedDir}, args...)
 }
 
-
 // DownloadRootFS downloads the Alpine root filesystem from the given URL and extracts it to the specified destination directory.
 // download alpine root fs  https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
 func DownloadRootFS(url string, dest string) error {

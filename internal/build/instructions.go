@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/container"
+	"github.com/lariskovski/containy/internal/overlay"
 )
 
 // Instruction represents a single directive in a container build file.
@@ -95,7 +95,6 @@ func from(arg string, state *BuildState) error {
 	return nil
 }
 
-
 // runCmd implements the RUN instruction from a container build file.
 // It executes commands in a new container layer and captures any changes
 // to the filesystem.
@@ -137,4 +136,3 @@ func runCmd(arg string, state *BuildState) error {
 	state.Instruction = "RUN"
 	return nil
 }
-
