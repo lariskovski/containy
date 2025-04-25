@@ -2,12 +2,10 @@ package build
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/overlay"
 	"github.com/lariskovski/containy/internal/container"
-	"github.com/lariskovski/containy/internal/utils"
 )
 
 // Instruction represents a single directive in a container build file.
@@ -71,7 +69,7 @@ func from(arg string, state *BuildState) error {
 	config.Log.Infof("Processing FROM instruction with argument: %s", arg)
 
 	inst := "FROM " + arg
-	id := utils.GenerateHexID(inst)
+	id := GenerateHexID(inst)
 
 	// Create and setup overlay filesystem in one step using the Layer abstraction
 	layer, err := overlay.NewOverlayFS("", id, true)
@@ -79,7 +77,7 @@ func from(arg string, state *BuildState) error {
 		return fmt.Errorf("failed to create overlay filesystem: %w", err)
 	}
 
-	err = utils.DownloadRootFS(arg, layer.GetLowerDir())
+	err = DownloadRootFS(arg, layer.GetLowerDir())
 	if err != nil {
 		return fmt.Errorf("failed to download root filesystem: %w", err)
 	}
@@ -119,7 +117,7 @@ func runCmd(arg string, state *BuildState) error {
 	config.Log.Infof("Processing RUN instruction with argument: %s", arg)
 
 	inst := "RUN " + arg
-	id := utils.GenerateHexID(inst)
+	id := GenerateHexID(inst)
 
 	newLowerDir := buildLowerDir(state)
 	layer, err := overlay.NewOverlayFS(newLowerDir, id, false)
@@ -140,45 +138,3 @@ func runCmd(arg string, state *BuildState) error {
 	return nil
 }
 
-// buildLowerDir constructs the lowerdir path for overlayfs mounting.
-//
-// The lowerdir for a RUN instruction depends on the previous instruction:
-//   - After FROM: Uses the lower directory of the base image
-//   - After other instructions: Chains the current layer's upper directory
-//     with previous lower directories
-//
-// Parameters:
-//   - state: The current build state containing layer information
-//
-// Returns:
-//   - string: The formatted lowerdir path for overlayfs mount
-func buildLowerDir(state *BuildState) string {
-	var previousLayer string
-	if state.Instruction == "FROM" {
-		previousLayer = state.CurrentLayer.GetLowerDir()
-	} else {
-		previousLayer = state.CurrentLayer.GetUpperDir()
-	}
-	newLowerDir := previousLayer
-	if state.CurrentLayer.GetLowerDir() != "" && state.Instruction != "FROM" {
-		newLowerDir = state.CurrentLayer.GetLowerDir() + ":" + previousLayer
-	}
-	return newLowerDir
-}
-
-// prepareCommandArgs constructs the argument slice for container execution.
-//
-// This function prepends the container's merged directory path to the
-// command arguments, enabling the container runtime to execute the command
-// in the correct filesystem context.
-//
-// Parameters:
-//   - mergedDir: The path to the merged overlay filesystem
-//   - arg: The raw command string to be executed
-//
-// Returns:
-//   - []string: A slice containing the merged directory followed by command arguments
-func prepareCommandArgs(mergedDir, arg string) []string {
-	args := strings.Fields(arg)
-	return append([]string{mergedDir}, args...)
-}

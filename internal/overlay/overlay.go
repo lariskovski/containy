@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/utils"
 	"golang.org/x/sys/unix"
 )
 
@@ -61,7 +60,7 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 	// For FROM instructions, create a lowerDir
 	if isBaseLayer {
 		lowerDir = baseDir + "lower"
-		if err := utils.CreateDirectory(lowerDir); err != nil {
+		if err := CreateDirectory(lowerDir); err != nil {
 			return nil, fmt.Errorf("failed to create lowerDir overlay directory: %w", err)
 		}
 	}
@@ -74,7 +73,7 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 		MergedDir: mergedDir,
 	}
 
-	if err := utils.CreateDirectory(upperDir, workDir, mergedDir); err != nil {
+	if err := CreateDirectory(upperDir, workDir, mergedDir); err != nil {
 		return nil, fmt.Errorf("failed to create overlay directories: %w", err)
 	}
 
@@ -137,4 +136,23 @@ func CheckIfLayerExists(id string) bool {
 		return false // Directory does not exist
 	}
 	return true // Directory exists
+}
+
+func CreateDirectory(paths ...string) error {
+	for _, path := range paths {
+		config.Log.Debugf("Creating directory: %s", path)
+		// Check if the directory already exists
+		if _, err := os.Stat(path); err == nil {
+			// Directory exists, no need to create it
+			continue
+		} else if !os.IsNotExist(err) {
+			// An error occurred while checking the directory
+			return fmt.Errorf("failed to check directory %s: %w", path, err)
+		}
+		// Directory does not exist, create it
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", path, err)
+		}
+	}
+	return nil
 }
