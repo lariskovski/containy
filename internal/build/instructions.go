@@ -47,7 +47,7 @@ var handlers = map[string]func(string, *BuildState) (*overlay.OverlayFS, error){
 //
 // Returns:
 //   - error: Any error encountered during execution, or nil on success
-func execute(instruction Instruction, state *BuildState) (*overlay.OverlayFS, error){
+func execute(instruction Instruction, state *BuildState) (*overlay.OverlayFS, error) {
 	instructionType := instruction.GetType()
 	instructionArgs := instruction.GetArgs()
 
@@ -122,7 +122,7 @@ func runCmd(arg string, state *BuildState) (*overlay.OverlayFS, error) {
 	// Consider: return an error if container.Create fails, instead of calling it directly
 	if err := container.Create(command); err != nil {
 		return nil, fmt.Errorf("failed to execute command in container: %w", err)
-	}	
+	}
 
 	return layer, nil
 }
