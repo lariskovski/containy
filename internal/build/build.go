@@ -59,17 +59,16 @@ func Build(filepath string) error {
 
 		// Execute the instruction using the appropriate handler
 		config.Log.Infof("STEP %d: %s %s", step + 1, instructionType, instructionArgs)
-		err := execute(instruction, buildState)
+		layer, err := execute(instruction, buildState)
 		if err != nil {
 			return fmt.Errorf("failed to execute instruction %s: %w", instructionType, err)
 		}
 		config.Log.Debugf("Instruction executed successfully: %s", instructionType)
 
-		// Currently the build state is updated by the commands FIX IT so the handler returns the new overlay
-		// and it gets updated here
-		// Update the current layer in the build state
-		// buildState.CurrentLayer = buildState.CurrentLayer
-		// buildState.Instruction = instructionType
+		// Update the build state with the new layer and instruction
+		buildState.CurrentLayer = layer
+		buildState.Instruction = instructionType
+		config.Log.Debugf("Updated build state to current layer: %s", buildState.CurrentLayer.ID)
 	}
 
 	config.Log.Infof("Container build completed successfully.")
