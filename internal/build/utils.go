@@ -1,37 +1,61 @@
-package utils
+package build
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
 )
 
-func CreateDirectory(paths ...string) error {
-	for _, path := range paths {
-		config.Log.Debugf("Creating directory: %s", path)
-		// Check if the directory already exists
-		if _, err := os.Stat(path); err == nil {
-			// Directory exists, no need to create it
-			continue
-		} else if !os.IsNotExist(err) {
-			// An error occurred while checking the directory
-			return fmt.Errorf("failed to check directory %s: %w", path, err)
-		}
-		// Directory does not exist, create it
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", path, err)
-		}
+// buildLowerDir constructs the lowerdir path for overlayfs mounting.
+//
+// The lowerdir for a RUN instruction depends on the previous instruction:
+//   - After FROM: Uses the lower directory of the base image
+//   - After other instructions: Chains the current layer's upper directory
+//     with previous lower directories
+//
+// Parameters:
+//   - state: The current build state containing layer information
+//
+// Returns:
+//   - string: The formatted lowerdir path for overlayfs mount
+func buildLowerDir(state *BuildState) string {
+	var previousLayer string
+	if state.Instruction == "FROM" {
+		previousLayer = state.CurrentLayer.GetLowerDir()
+	} else {
+		previousLayer = state.CurrentLayer.GetUpperDir()
 	}
-	return nil
+	newLowerDir := previousLayer
+	if state.CurrentLayer.GetLowerDir() != "" && state.Instruction != "FROM" {
+		newLowerDir = state.CurrentLayer.GetLowerDir() + ":" + previousLayer
+	}
+	return newLowerDir
 }
+
+// prepareCommandArgs constructs the argument slice for container execution.
+//
+// This function prepends the container's merged directory path to the
+// command arguments, enabling the container runtime to execute the command
+// in the correct filesystem context.
+//
+// Parameters:
+//   - mergedDir: The path to the merged overlay filesystem
+//   - arg: The raw command string to be executed
+//
+// Returns:
+//   - []string: A slice containing the merged directory followed by command arguments
+func prepareCommandArgs(mergedDir, arg string) []string {
+	args := strings.Fields(arg)
+	return append([]string{mergedDir}, args...)
+}
+
 
 // DownloadRootFS downloads the Alpine root filesystem from the given URL and extracts it to the specified destination directory.
 // download alpine root fs  https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
@@ -191,15 +215,4 @@ func extractTarGz(gzipPath, dest string) error {
 	}
 
 	return nil
-}
-
-func GenerateHexID(input string) string {
-	length := config.IDLength
-	config.Log.Debugf("Generating hex ID for input: %s", input)
-	hash := sha256.Sum256([]byte(input))
-	hexString := hex.EncodeToString(hash[:])
-	if length > len(hexString) {
-		length = len(hexString)
-	}
-	return hexString[:length]
 }

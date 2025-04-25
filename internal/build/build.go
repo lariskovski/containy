@@ -1,12 +1,13 @@
 package build
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/overlay"
-	"github.com/lariskovski/containy/internal/utils"
 )
 
 // BuildState maintains context during a container image build.
@@ -19,7 +20,6 @@ type BuildState struct {
 	// Instruction stores the type of the most recently executed instruction
 	Instruction string
 }
-
 
 // Build parses a container build file and executes its instructions to build an image.
 // The file at 'filepath' should contain container build instructions (e.g., FROM, RUN).
@@ -36,6 +36,11 @@ func Build(filepath string) error {
 
 	buildState := &BuildState{}
 
+	// Iterate through the instructions and execute each one
+	// The build state is updated after each instruction
+	// to reflect the current layer and instruction type
+	// The build state is passed to each instruction handler
+	// to allow them to modify the state as needed
 	for _, instruction := range instructions {
 		instructionType := instruction.GetType()
 
@@ -46,7 +51,7 @@ func Build(filepath string) error {
 		instructionArgs := instruction.GetArgs()
 
 		// check if layer exists
-		id := utils.GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
+		id := GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
 		if overlay.CheckIfLayerExists(id){
 			config.Log.Infof("Layer is already in cache: %s", id)
 			continue
@@ -83,4 +88,15 @@ func Build(filepath string) error {
 func isValidCommand(cmd string) bool {
 	_, ok := handlers[cmd]
 	return ok
+}
+
+func GenerateHexID(input string) string {
+	length := config.IDLength
+	config.Log.Debugf("Generating hex ID for input: %s", input)
+	hash := sha256.Sum256([]byte(input))
+	hexString := hex.EncodeToString(hash[:])
+	if length > len(hexString) {
+		length = len(hexString)
+	}
+	return hexString[:length]
 }
