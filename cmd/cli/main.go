@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/lariskovski/containy/internal/build"
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/container"
-	"github.com/lariskovski/containy/internal/build"
 	"github.com/spf13/cobra"
 )
 

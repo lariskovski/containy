@@ -52,7 +52,7 @@ func Build(filepath string) error {
 
 		// check if layer exists
 		id := GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
-		if overlay.CheckIfLayerExists(id){
+		if overlay.CheckIfLayerExists(id) {
 			config.Log.Infof("Layer is already in cache: %s", id)
 			continue
 		}
