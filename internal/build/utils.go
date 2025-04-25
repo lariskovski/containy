@@ -174,7 +174,15 @@ func extractTarGz(gzipPath, dest string) error {
 			return fmt.Errorf("failed to read tar header: %v", err)
 		}
 
-		target := filepath.Join(dest, header.Name)
+		// Clean and validate the header name to prevent directory traversal
+		cleanedName := filepath.Clean(header.Name)
+		target := filepath.Join(dest, cleanedName)
+
+		// Ensure the target path is within the destination directory
+		if !strings.HasPrefix(target, filepath.Clean(dest)+string(os.PathSeparator)) {
+			config.Log.Errorf("Invalid file path: %s", header.Name)
+			return fmt.Errorf("invalid file path: %s", header.Name)
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
