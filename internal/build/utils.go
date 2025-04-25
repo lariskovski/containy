@@ -210,10 +210,26 @@ func extractTarGz(gzipPath, dest string) error {
 			}
 			outFile.Close()
 		case tar.TypeSymlink:
+			// Resolve symbolic link paths
+			resolvedLinkname, err := filepath.EvalSymlinks(filepath.Join(dest, header.Linkname))
+			if err != nil {
+				config.Log.Errorf("Failed to resolve symlink target %s: %v", header.Linkname, err)
+				return fmt.Errorf("failed to resolve symlink target %s: %v", header.Linkname, err)
+			}
+			resolvedTarget, err := filepath.EvalSymlinks(target)
+			if err != nil {
+				config.Log.Errorf("Failed to resolve target path %s: %v", target, err)
+				return fmt.Errorf("failed to resolve target path %s: %v", target, err)
+			}
+			// Ensure the resolved target path is within the destination directory
+			if !strings.HasPrefix(resolvedTarget, filepath.Clean(dest)+string(os.PathSeparator)) {
+				config.Log.Errorf("Invalid symlink target path: %s", resolvedTarget)
+				return fmt.Errorf("invalid symlink target path: %s", resolvedTarget)
+			}
 			// Create symbolic link
-			if err := os.Symlink(header.Linkname, target); err != nil {
-				config.Log.Errorf("Failed to create symlink %s -> %s: %v", target, header.Linkname, err)
-				return fmt.Errorf("failed to create symlink %s -> %s: %v", target, header.Linkname, err)
+			if err := os.Symlink(resolvedLinkname, resolvedTarget); err != nil {
+				config.Log.Errorf("Failed to create symlink %s -> %s: %v", resolvedTarget, resolvedLinkname, err)
+				return fmt.Errorf("failed to create symlink %s -> %s: %v", resolvedTarget, resolvedLinkname, err)
 			}
 		default:
 			// Skip other file types
