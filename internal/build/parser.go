@@ -1,4 +1,4 @@
-package parser
+package build
 
 import (
 	"bufio"
@@ -7,22 +7,16 @@ import (
 	"strings"
 )
 
-// Line represents a generic parsed line
-type Line struct {
-	Type string
-	Args string
-}
-
-// Parse reads a file line by line, parses each line into a Line struct, and returns a slice of parsed lines.
+// Parse reads a file line by line, parses each line into a Instruction struct, and returns a slice of parsed lines.
 // It skips empty lines and lines starting with a '#' (comments).
-func Parse(path string) ([]Line, error) {
+func parse(path string) ([]Instruction, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
 	}
 	defer file.Close()
 
-	var lines []Line
+	var lines []Instruction
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
@@ -50,22 +44,22 @@ func Parse(path string) ([]Line, error) {
 }
 
 // parseLine splits a line into its type (command) and arguments.
-// It returns a Line struct containing the parsed type and arguments.
-func parseLine(line string) (Line, error) {
+// It returns a Instruction struct containing the parsed type and arguments.
+func parseLine(line string) (Instruction, error) {
 	fields := strings.Fields(line)
 	if len(fields) == 0 {
-		return Line{}, fmt.Errorf("empty or invalid line")
+		return Instruction{}, fmt.Errorf("empty line")
 	}
 
 	lineType := strings.ToUpper(fields[0])
 	args := strings.Join(fields[1:], " ")
 
-	return Line{Type: lineType, Args: args}, nil
+	return Instruction{Type: lineType, Args: args}, nil
 }
 
-func (l Line) GetType() string {
-	return l.Type
+func (i Instruction) GetType() string {
+	return i.Type
 }
-func (l Line) GetArgs() string {
-	return l.Args
+func (i Instruction) GetArgs() string {
+	return i.Args
 }
