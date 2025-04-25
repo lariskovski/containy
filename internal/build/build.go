@@ -26,7 +26,7 @@ type BuildState struct {
 // Each instruction is parsed, converted to the instructions.Instruction interface, and executed in order.
 // If any instruction fails, the build process is aborted and an error is logged.
 func Build(filepath string) error {
-	config.Log.Debugf("Building container from file: %s", filepath)
+	config.Log.Infof("Building container from file: %s", filepath)
 
 	// Parse the build file into a slice of parser.Line instructions
 	instructions, err := parse(filepath)
@@ -41,7 +41,7 @@ func Build(filepath string) error {
 	// to reflect the current layer and instruction type
 	// The build state is passed to each instruction handler
 	// to allow them to modify the state as needed
-	for _, instruction := range instructions {
+	for step, instruction := range instructions {
 		instructionType := instruction.GetType()
 
 		// Check if the instruction type is valid
@@ -58,12 +58,12 @@ func Build(filepath string) error {
 		}
 
 		// Execute the instruction using the appropriate handler
-		config.Log.Infof("Executing instruction: %s %s", instructionType, instructionArgs)
+		config.Log.Infof("STEP %d: %s %s", step + 1, instructionType, instructionArgs)
 		err := execute(instruction, buildState)
 		if err != nil {
 			return fmt.Errorf("failed to execute instruction %s: %w", instructionType, err)
 		}
-		config.Log.Infof("Instruction executed successfully: %s", instructionType)
+		config.Log.Debugf("Instruction executed successfully: %s", instructionType)
 
 		// Currently the build state is updated by the commands FIX IT so the handler returns the new overlay
 		// and it gets updated here
