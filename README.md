@@ -12,13 +12,13 @@ Containy is a lightweight container runtime written in Go for study purposes. It
 ### Build a Container
 To build a container from a file (e.g., `TainyFile`):
 ```bash
-$ sudo go run cmd/cli/main.go build TainyFile
+$ sudo go run main.go build TainyFile
 ```
 
 ### Run a Container
 To run a container from a specific layer:
 ```bash
-$ sudo go run cmd/cli/main.go run tmp/build/layers/<layer-id>/merged sh
+$ sudo go run main.go run tmp/build/layers/<layer-id>/merged sh
 ```
 
 Replace `<layer-id>` with the actual ID of the layer you want to run.
