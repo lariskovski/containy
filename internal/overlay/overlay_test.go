@@ -52,12 +52,12 @@ func TestCheckIfLayerExists(t *testing.T) {
 
 func TestCreateDirectory(t *testing.T) {
 	dir := t.TempDir() + "/newdir"
-	err := CreateDirectory(dir)
+	err := createDirectory(dir)
 	assert.NoError(t, err)
 	assert.DirExists(t, dir)
 
 	// Should not error if already exists
-	err = CreateDirectory(dir)
+	err = createDirectory(dir)
 	assert.NoError(t, err)
 }
 

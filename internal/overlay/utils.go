@@ -25,7 +25,7 @@ func CheckIfLayerExists(id string) bool {
 	return true // Directory exists
 }
 
-func CreateDirectory(paths ...string) error {
+func createDirectory(paths ...string) error {
 	for _, path := range paths {
 		config.Log.Debugf("Creating directory: %s", path)
 		// Check if the directory already exists
