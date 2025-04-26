@@ -1,6 +1,6 @@
 package config
 
-var (
+const (
 	// !!! Base and Alias directories need trailing slashes
 	BaseOverlayDir = "tmp/build/layers/"
 	AliasDir	   = "tmp/build/alias/"
