@@ -23,23 +23,33 @@ type Layer interface {
 	CreateAlias(alias string) error
 }
 
-func AddNewLayer(lowerDir string, id , arg string) (Layer, error) {
+func AddNewLayer(lowerDir, id string) (Layer, error) {
 	// Create the base directory for the layers
 	layer, err := overlay.NewOverlayFS(lowerDir, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup layer: %w", err)
 	}
 
-	// download the root filesystem if its a base layer
-	if lowerDir == "" {
-		err = DownloadRootFS(arg, layer.GetLowerDir())
-		if err != nil {
-			return nil, fmt.Errorf("failed to download root filesystem: %w", err)
-		}
+	if err := layer.Mount(); err != nil {
+		return nil, fmt.Errorf("failed to mount layer: %w", err)
+	}
+
+	return layer, nil
+}
+
+func AddBaseLayer(id, fsURL string) (Layer, error) {
+	layer, err := overlay.NewOverlayFS("", id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup base layer: %w", err)
+	}
+
+	err = DownloadRootFS(fsURL, layer.GetLowerDir())
+	if err != nil {
+		return nil, fmt.Errorf("failed to download root filesystem: %w", err)
 	}
 
 	if err := layer.Mount(); err != nil {
-		return nil, fmt.Errorf("failed to mount layer: %w", err)
+		return nil, fmt.Errorf("failed to mount base layer: %w", err)
 	}
 
 	return layer, nil

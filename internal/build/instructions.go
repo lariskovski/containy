@@ -63,7 +63,7 @@ func from(arg string, state *BuildState) (Layer, error) {
 	id := GenerateHexID(inst)
 
 	// Create and setup overlay filesystem in one step using the Layer abstraction
-	layer, err := AddNewLayer("", id, arg)
+	layer, err := AddBaseLayer(id, arg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new layer: %w", err)
 	}
@@ -95,7 +95,8 @@ func runCmd(arg string, state *BuildState) (Layer, error) {
 	id := GenerateHexID(inst)
 
 	newLowerDir := buildLowerDir(state)
-	layer, err := AddNewLayer(newLowerDir, id, arg)
+	
+	layer, err := AddNewLayer(newLowerDir, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new layer: %w", err)
 	}
