@@ -47,13 +47,10 @@ var handlers = map[string]func(string, *BuildState) (*overlay.OverlayFS, error){
 //
 // Returns:
 //   - error: Any error encountered during execution, or nil on success
-func execute(instruction Instruction, state *BuildState) (*overlay.OverlayFS, error) {
-	instructionType := instruction.GetType()
-	instructionArgs := instruction.GetArgs()
-
+func (i Instruction) execute(state *BuildState) (*overlay.OverlayFS, error) {
 	// Execute the instruction using the appropriate handler
-	handler := handlers[instructionType]
-	return handler(instructionArgs, state)
+	handler := handlers[i.GetType()]
+	return handler(i.GetArgs(), state)
 }
 
 // The FROM instruction specifies the base image to use for the container.

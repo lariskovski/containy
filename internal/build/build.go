@@ -56,7 +56,7 @@ func Build(filepath, alias string) error {
 
 		// Execute the instruction using the appropriate handler
 		config.Log.Infof("STEP %d: %s %s", step+1, instructionType, instructionArgs)
-		layer, err := execute(instruction, buildState)
+		layer, err := instruction.execute(buildState)
 		if err != nil {
 			return fmt.Errorf("failed to execute instruction %s: %w", instructionType, err)
 		}
