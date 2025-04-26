@@ -38,6 +38,18 @@ func Create(args []string) error {
 	overlayDir := args[0]
 	commandArgs := args[1:]
 
+	// Check if the overlay directory is an alias
+	// If it is, resolve the alias to the actual directory
+	alias, err := os.Readlink(overlayDir)
+	if err == nil  {
+		overlayDir = alias
+	}
+
+	// Check if the overlay directory exists
+	if _, err := os.Stat(overlayDir); os.IsNotExist(err) {
+		return fmt.Errorf("overlay directory does not exist: %s", overlayDir)
+	}
+
 	if os.Args[0] == "/proc/self/exe" {
 		return handleChildProcess(overlayDir, commandArgs)
 	}
