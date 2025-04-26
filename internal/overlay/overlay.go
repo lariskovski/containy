@@ -105,6 +105,25 @@ func (o *OverlayFS) Mount() error {
 	return nil
 }
 
+func (o *OverlayFS) CreateAlias(alias string) error {
+	// Check if the alias already exists
+	if _, err := os.Stat(config.AliasDir + alias); !os.IsNotExist(err) {
+		return fmt.Errorf("alias %s already exists", alias)
+	}
+	// Create the alias directory if it doesn't exist
+	if err := os.MkdirAll(config.AliasDir, 0755); err != nil {
+		return fmt.Errorf("failed to create alias directory: %v", err)
+	}
+
+	// Create a symbolic link to the merged directory
+	err := os.Symlink(o.MergedDir, config.AliasDir + alias)
+	if err != nil {
+		return fmt.Errorf("failed to create alias %s: %v", alias, err)
+	}
+
+	return nil
+}
+
 // GetID returns the unique identifier for this layer.
 func (o *OverlayFS) GetID() string { return o.ID }
 
@@ -120,39 +139,3 @@ func (o *OverlayFS) GetWorkDir() string { return o.WorkDir }
 // GetMergedDir returns the path to the directory where the unified filesystem view is mounted.
 func (o *OverlayFS) GetMergedDir() string { return o.MergedDir }
 
-// CheckIfLayerExists determines if a layer with the given ID already exists on disk.
-// This is used for layer caching during builds.
-//
-// Parameters:
-//   - id: The unique layer identifier to check
-//
-// Returns:
-//   - bool: true if the layer exists, false otherwise
-func CheckIfLayerExists(id string) bool {
-	basePath := config.BaseOverlayDir + id + "/"
-	config.Log.Debugf("Checking if layer exists at path: %s", basePath)
-	// Check if the directory exists
-	if _, err := os.Stat(basePath); os.IsNotExist(err) {
-		return false // Directory does not exist
-	}
-	return true // Directory exists
-}
-
-func CreateDirectory(paths ...string) error {
-	for _, path := range paths {
-		config.Log.Debugf("Creating directory: %s", path)
-		// Check if the directory already exists
-		if _, err := os.Stat(path); err == nil {
-			// Directory exists, no need to create it
-			continue
-		} else if !os.IsNotExist(err) {
-			// An error occurred while checking the directory
-			return fmt.Errorf("failed to check directory %s: %w", path, err)
-		}
-		// Directory does not exist, create it
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", path, err)
-		}
-	}
-	return nil
-}
