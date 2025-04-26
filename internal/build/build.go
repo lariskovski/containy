@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/overlay"
 )
 
 // BuildState maintains context during a container image build.
@@ -15,10 +14,10 @@ import (
 // allowing instructions to build upon previous ones.
 type BuildState struct {
 	// CurrentLayer represents the most recently created filesystem layer
-	CurrentLayer *overlay.OverlayFS
+	CurrentLayer Layer
 
-	// Instruction stores the type of the most recently executed instruction
-	Instruction string
+	// CurrentInstructionType stores the type of the most recently executed instruction
+	CurrentInstructionType string
 }
 
 // Build parses a container build file and executes its instructions to build an image.
@@ -36,12 +35,10 @@ func Build(filepath, alias string) error {
 
 	buildState := &BuildState{}
 
-	totalInstructions := len(instructions)
-
 	for step, instruction := range instructions {
 		instructionType := instruction.GetType()
 		instructionArgs := instruction.GetArgs()
-		
+
 		// Check if the instruction type is valid
 		if !isValidCommand(instructionType) {
 			return fmt.Errorf("unknown command: %s", instructionType)
@@ -49,35 +46,42 @@ func Build(filepath, alias string) error {
 
 		// check if layer exists
 		id := GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
-		if overlay.CheckIfLayerExists(id) {
+		if checkIfLayerExists(id) {
 			config.Log.Infof("Layer is already in cache: %s", id)
 			continue
 		}
 
 		// Execute the instruction using the appropriate handler
 		config.Log.Infof("STEP %d: %s %s", step+1, instructionType, instructionArgs)
-		layer, err := execute(instruction, buildState)
+		// Create a new layer for the instruction and returns it
+		// in order to centralize build state updating
+		layer, err := instruction.execute(buildState)
 		if err != nil {
 			return fmt.Errorf("failed to execute instruction %s: %w", instructionType, err)
 		}
 		config.Log.Debugf("Instruction executed successfully: %s", instructionType)
 
 		// Update the build state with the new layer and instruction
-		buildState.CurrentLayer = layer
-		buildState.Instruction = instructionType
-		config.Log.Debugf("Updated build state to current layer: %s", buildState.CurrentLayer.ID)
-
-		// Create an alias for the last layer
-		if step == totalInstructions - 1 {
-			if alias == "" {
-				alias = layer.ID
-			}
-			if err := layer.CreateAlias(alias); err != nil {
-				return fmt.Errorf("failed to create alias for layer %s: %w", layer.ID, err)
-			}
-			config.Log.Infof("Create alias %s", alias)
-		}
+		updateBuildState(buildState, layer, instructionType)
 	}
+
+	// Create an alias for the last layer if specified
+	// This is useful for tagging the final image with a name
+	// and version (e.g., "myimage:latest")
+	// If no alias is provided, use the layer ID as the alias
+	// This allows users to refer to the final image by a friendly name
+	// instead of a hash
+	if buildState.CurrentLayer != nil {
+		finalAlias := alias
+		if finalAlias == "" {
+			finalAlias = buildState.CurrentLayer.GetID()
+		}
+		if err := buildState.CurrentLayer.CreateAlias(finalAlias); err != nil {
+			return fmt.Errorf("failed to create alias for layer %s: %w", buildState.CurrentLayer.GetID(), err)
+		}
+		config.Log.Infof("Created alias %s -> %s", finalAlias, buildState.CurrentLayer.GetMergedDir())
+	}
+	
 
 	config.Log.Infof("Container build completed successfully.")
 	return nil
@@ -106,4 +110,10 @@ func GenerateHexID(input string) string {
 		length = len(hexString)
 	}
 	return hexString[:length]
+}
+
+func updateBuildState(state *BuildState, layer Layer, instructionType string) {
+	state.CurrentLayer = layer
+	state.CurrentInstructionType = instructionType
+	config.Log.Debugf("Updated build state to current layer: %s", layer.GetID())
 }

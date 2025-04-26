@@ -50,7 +50,7 @@ type OverlayFS struct {
 // Returns:
 //   - *OverlayFS: The created overlay filesystem instance
 //   - error: Any error encountered during setup
-func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
+func NewOverlayFS(lowerDir, id string) (*OverlayFS, error) {
 	config.Log.Debugf("Creating new overlay filesystem with ID: %s", id)
 
 	baseDir := config.BaseOverlayDir + id + "/"
@@ -59,9 +59,9 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 	mergedDir := baseDir + "merged"
 
 	// For FROM instructions, create a lowerDir
-	if isBaseLayer {
+	if lowerDir == "" {
 		lowerDir = baseDir + "lower"
-		if err := CreateDirectory(lowerDir); err != nil {
+		if err := createDirectory(lowerDir); err != nil {
 			return nil, fmt.Errorf("failed to create lowerDir overlay directory: %w", err)
 		}
 	}
@@ -74,7 +74,7 @@ func NewOverlayFS(lowerDir, id string, isBaseLayer bool) (*OverlayFS, error) {
 		MergedDir: mergedDir,
 	}
 
-	if err := CreateDirectory(upperDir, workDir, mergedDir); err != nil {
+	if err := createDirectory(upperDir, workDir, mergedDir); err != nil {
 		return nil, fmt.Errorf("failed to create overlay directories: %w", err)
 	}
 
@@ -139,4 +139,3 @@ func (o *OverlayFS) GetWorkDir() string { return o.WorkDir }
 
 // GetMergedDir returns the path to the directory where the unified filesystem view is mounted.
 func (o *OverlayFS) GetMergedDir() string { return o.MergedDir }
-

@@ -27,6 +27,12 @@ Replace `<layer-id>` with the actual ID of the layer you want to run.
 - Go 1.23.4 or higher.
 - Root privileges to execute container operations.
 
+## Tests
+
+```
+go test -v ./internal/...
+```
+
 ## Cleanup
 To unmount all overlay filesystems and clean up temporary files:
 ```bash
@@ -34,9 +40,9 @@ $ ./umount.sh
 ```
 ## Todo
 
-- [ ] Create aliases for layers and use them on run command
-- [ ] Umount layers after creation? run command then has to check if overlay is mounted if not mount it.
+- [x] Create aliases for layers and use them on run command
 - [x] Add Cobra CLI
 - [x] Improve logging
 - [x] Better patterns and less verbose output
+- [ ] Umount layers after creation? run command then has to check if overlay is mounted if not mount it.
 - [ ] Add networking ns and bridge setup

@@ -51,7 +51,7 @@ func Create(args []string) error {
 	}
 
 	// /proc/self/exe is the current executable this is used to re-execute
-	// the current binary in the child process This is a common pattern in 
+	// the current binary in the child process This is a common pattern in
 	// container runtimes to re-execute the current binary with new namespaces
 	if os.Args[0] == "/proc/self/exe" {
 		return handleChildProcess(overlayDir, commandArgs)

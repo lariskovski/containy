@@ -5,7 +5,6 @@ import (
 
 	"github.com/lariskovski/containy/internal/config"
 	"github.com/lariskovski/containy/internal/container"
-	"github.com/lariskovski/containy/internal/overlay"
 )
 
 // Instruction represents a single directive in a container build file.
@@ -26,7 +25,7 @@ type Instruction struct {
 // handlers maps instruction types to their implementation functions.
 // To add support for a new instruction type, add an entry to this map
 // with a handler function that implements the instruction's behavior.
-var handlers = map[string]func(string, *BuildState) (*overlay.OverlayFS, error){
+var handlers = map[string]func(string, *BuildState) (Layer, error){
 	"FROM": from,
 	"RUN":  runCmd,
 	// "COPY": copyCmd,
@@ -47,39 +46,26 @@ var handlers = map[string]func(string, *BuildState) (*overlay.OverlayFS, error){
 //
 // Returns:
 //   - error: Any error encountered during execution, or nil on success
-func execute(instruction Instruction, state *BuildState) (*overlay.OverlayFS, error) {
-	instructionType := instruction.GetType()
-	instructionArgs := instruction.GetArgs()
-
+func (i Instruction) execute(state *BuildState) (Layer, error) {
 	// Execute the instruction using the appropriate handler
-	handler := handlers[instructionType]
-	return handler(instructionArgs, state)
+	handler := handlers[i.GetType()]
+	return handler(i.GetArgs(), state)
 }
 
 // The FROM instruction specifies the base image to use for the container.
 // Sets up the base layer for the container image by downloading and mounting the specified root filesystem.
 // It creates a new layer and mounts it to the specified directory.
 // The function also updates the BuildState with the current layer and instruction.
-func from(arg string, state *BuildState) (*overlay.OverlayFS, error) {
+func from(arg string, state *BuildState) (Layer, error) {
 	config.Log.Debugf("Processing FROM instruction with argument: %s", arg)
 
 	inst := "FROM " + arg
 	id := GenerateHexID(inst)
 
 	// Create and setup overlay filesystem in one step using the Layer abstraction
-	layer, err := overlay.NewOverlayFS("", id, true)
+	layer, err := AddBaseLayer(id, arg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create overlay filesystem: %w", err)
-	}
-
-	err = DownloadRootFS(arg, layer.GetLowerDir())
-	if err != nil {
-		return nil, fmt.Errorf("failed to download root filesystem: %w", err)
-	}
-
-	err = layer.Mount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount overlay filesystem: %w", err)
+		return nil, fmt.Errorf("failed to create new layer: %w", err)
 	}
 
 	return layer, nil
@@ -102,20 +88,17 @@ func from(arg string, state *BuildState) (*overlay.OverlayFS, error) {
 //
 // Returns:
 //   - error: Any error encountered during the process
-func runCmd(arg string, state *BuildState) (*overlay.OverlayFS, error) {
+func runCmd(arg string, state *BuildState) (Layer, error) {
 	config.Log.Debugf("Processing RUN instruction with argument: %s", arg)
 
 	inst := "RUN " + arg
 	id := GenerateHexID(inst)
 
 	newLowerDir := buildLowerDir(state)
-	layer, err := overlay.NewOverlayFS(newLowerDir, id, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup layer: %w", err)
-	}
 
-	if err := layer.Mount(); err != nil {
-		return nil, fmt.Errorf("failed to mount layer: %w", err)
+	layer, err := AddNewLayer(newLowerDir, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new layer: %w", err)
 	}
 
 	command := prepareCommandArgs(layer.GetMergedDir(), arg)
