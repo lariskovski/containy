@@ -16,33 +16,17 @@ $ sudo go run main.go build examples/TainyFile --alias test
 ```
 
 ### Run a Container
-To run a container from a specific layer:
+To run a container from an alias:
 ```bash
 $ sudo go run main.go run test sh
 ```
 
-Replace `<layer-id>` with the actual ID of the layer you want to run.
-
 ## Requirements
 - Go 1.23.4 or higher.
 - Root privileges to execute container operations.
-
-## Tests
-
-```
-go test -v ./internal/...
-```
 
 ## Cleanup
 To unmount all overlay filesystems and clean up temporary files:
 ```bash
 $ ./umount.sh
 ```
-## Todo
-
-- [x] Create aliases for layers and use them on run command
-- [x] Add Cobra CLI
-- [x] Improve logging
-- [x] Better patterns and less verbose output
-- [ ] Umount layers after creation? run command then has to check if overlay is mounted if not mount it.
-- [ ] Add networking ns and bridge setup
