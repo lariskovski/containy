@@ -3,6 +3,7 @@ package overlay
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/lariskovski/containy/internal/config"
 	"golang.org/x/sys/unix"
@@ -107,7 +108,7 @@ func (o *OverlayFS) Mount() error {
 
 func (o *OverlayFS) CreateAlias(alias string) error {
 	// Check if the alias already exists
-	if _, err := os.Stat(config.AliasDir + alias); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(config.AliasDir, alias)); !os.IsNotExist(err) {
 		return fmt.Errorf("alias %s already exists", alias)
 	}
 	// Create the alias directory if it doesn't exist
@@ -116,7 +117,7 @@ func (o *OverlayFS) CreateAlias(alias string) error {
 	}
 
 	// Create a symbolic link to the merged directory
-	err := os.Symlink(o.MergedDir, config.AliasDir + alias)
+	err := os.Symlink(o.MergedDir, filepath.Join(config.AliasDir, alias))
 	if err != nil {
 		return fmt.Errorf("failed to create alias %s: %v", alias, err)
 	}
