@@ -9,8 +9,8 @@ import (
 )
 
 var (
-// 	filePath string
-	alias	string
+	// 	filePath string
+	alias string
 )
 
 func init() {

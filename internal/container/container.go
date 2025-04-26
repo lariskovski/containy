@@ -41,7 +41,7 @@ func Create(args []string) error {
 	// Check if the overlay directory is an alias
 	// If it is, resolve the alias to the actual directory
 	alias, err := os.Readlink(overlayDir)
-	if err == nil  {
+	if err == nil {
 		overlayDir = alias
 	}
 
@@ -51,7 +51,7 @@ func Create(args []string) error {
 	}
 
 	// /proc/self/exe is the current executable this is used to re-execute
-	// the current binary in the child process This is a common pattern in 
+	// the current binary in the child process This is a common pattern in
 	// container runtimes to re-execute the current binary with new namespaces
 	if os.Args[0] == "/proc/self/exe" {
 		return handleChildProcess(overlayDir, commandArgs)

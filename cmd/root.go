@@ -8,7 +8,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "containy",
+	Use:   "containy",
 	Short: "Containy is a container runtime",
 	Long:  "Containy is a container runtime that allows you to build and run containers.",
 	Run: func(cmd *cobra.Command, args []string) {

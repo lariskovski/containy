@@ -95,7 +95,7 @@ func runCmd(arg string, state *BuildState) (Layer, error) {
 	id := GenerateHexID(inst)
 
 	newLowerDir := buildLowerDir(state)
-	
+
 	layer, err := AddNewLayer(newLowerDir, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new layer: %w", err)
