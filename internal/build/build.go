@@ -44,15 +44,21 @@ func Build(filepath, alias string) error {
 			return fmt.Errorf("unknown command: %s", instructionType)
 		}
 
-		// check if layer exists
+		config.Log.Infof("STEP %d: %s %s", step+1, instructionType, instructionArgs)
+
 		id := GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
 		if checkIfLayerExists(id) {
-			config.Log.Infof("Layer is already in cache: %s", id)
+			config.Log.Infof("Layer is cached: %s", id)
+			// Load the cached layer and update build state
+			cachedLayer, err := loadCachedLayer(id)
+			if err != nil {
+				return fmt.Errorf("failed to load cached layer %s: %w", id, err)
+			}
+			updateBuildState(buildState, cachedLayer, instructionType)
 			continue
 		}
 
 		// Execute the instruction using the appropriate handler
-		config.Log.Infof("STEP %d: %s %s", step+1, instructionType, instructionArgs)
 		// Create a new layer for the instruction and returns it
 		// in order to centralize build state updating
 		layer, err := instruction.execute(buildState)
@@ -81,7 +87,6 @@ func Build(filepath, alias string) error {
 		}
 		config.Log.Infof("Created alias %s -> %s", finalAlias, buildState.CurrentLayer.GetMergedDir())
 	}
-	
 
 	config.Log.Infof("Container build completed successfully.")
 	return nil

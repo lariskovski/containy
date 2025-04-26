@@ -54,3 +54,16 @@ func AddBaseLayer(id, fsURL string) (Layer, error) {
 
 	return layer, nil
 }
+
+func loadCachedLayer(id string) (Layer, error) {
+	layer, err := overlay.NewOverlayFS("", id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cached layer: %w", err)
+	}
+
+	if err := layer.Mount(); err != nil {
+		return nil, fmt.Errorf("failed to mount cached layer: %w", err)
+	}
+
+	return layer, nil
+}
