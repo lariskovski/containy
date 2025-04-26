@@ -40,9 +40,9 @@ $ ./umount.sh
 ```
 ## Todo
 
-- [ ] Create aliases for layers and use them on run command
-- [ ] Umount layers after creation? run command then has to check if overlay is mounted if not mount it.
+- [x] Create aliases for layers and use them on run command
 - [x] Add Cobra CLI
 - [x] Improve logging
 - [x] Better patterns and less verbose output
+- [ ] Umount layers after creation? run command then has to check if overlay is mounted if not mount it.
 - [ ] Add networking ns and bridge setup

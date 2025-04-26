@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/lariskovski/containy/internal/config"
-	"github.com/lariskovski/containy/internal/overlay"
 )
 
 // BuildState maintains context during a container image build.
@@ -15,10 +14,10 @@ import (
 // allowing instructions to build upon previous ones.
 type BuildState struct {
 	// CurrentLayer represents the most recently created filesystem layer
-	CurrentLayer *overlay.OverlayFS
+	CurrentLayer Layer
 
-	// Instruction stores the type of the most recently executed instruction
-	Instruction string
+	// CurrentInstructionType stores the type of the most recently executed instruction
+	CurrentInstructionType string
 }
 
 // Build parses a container build file and executes its instructions to build an image.
@@ -41,7 +40,7 @@ func Build(filepath, alias string) error {
 	for step, instruction := range instructions {
 		instructionType := instruction.GetType()
 		instructionArgs := instruction.GetArgs()
-		
+
 		// Check if the instruction type is valid
 		if !isValidCommand(instructionType) {
 			return fmt.Errorf("unknown command: %s", instructionType)
@@ -49,7 +48,7 @@ func Build(filepath, alias string) error {
 
 		// check if layer exists
 		id := GenerateHexID(strings.Join([]string{instructionType, instructionArgs}, " "))
-		if overlay.CheckIfLayerExists(id) {
+		if checkIfLayerExists(id) {
 			config.Log.Infof("Layer is already in cache: %s", id)
 			continue
 		}
@@ -63,17 +62,15 @@ func Build(filepath, alias string) error {
 		config.Log.Debugf("Instruction executed successfully: %s", instructionType)
 
 		// Update the build state with the new layer and instruction
-		buildState.CurrentLayer = layer
-		buildState.Instruction = instructionType
-		config.Log.Debugf("Updated build state to current layer: %s", buildState.CurrentLayer.ID)
+		updateBuildState(buildState, layer, instructionType)
 
 		// Create an alias for the last layer
-		if step == totalInstructions - 1 {
+		if step == totalInstructions-1 {
 			if alias == "" {
-				alias = layer.ID
+				alias = layer.GetID()
 			}
 			if err := layer.CreateAlias(alias); err != nil {
-				return fmt.Errorf("failed to create alias for layer %s: %w", layer.ID, err)
+				return fmt.Errorf("failed to create alias for layer %s: %w", layer.GetID(), err)
 			}
 			config.Log.Infof("Create alias %s", alias)
 		}
@@ -106,4 +103,10 @@ func GenerateHexID(input string) string {
 		length = len(hexString)
 	}
 	return hexString[:length]
+}
+
+func updateBuildState(state *BuildState, layer Layer, instructionType string) {
+	state.CurrentLayer = layer
+	state.CurrentInstructionType = instructionType
+	config.Log.Debugf("Updated build state to current layer: %s", layer.GetID())
 }

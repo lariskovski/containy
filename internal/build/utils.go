@@ -13,6 +13,24 @@ import (
 	"github.com/lariskovski/containy/internal/config"
 )
 
+// checkIfLayerExists determines if a layer with the given ID already exists on disk.
+// This is used for layer caching during builds.
+//
+// Parameters:
+//   - id: The unique layer identifier to check
+//
+// Returns:
+//   - bool: true if the layer exists, false otherwise
+func checkIfLayerExists(id string) bool {
+	basePath := config.BaseOverlayDir + id + "/"
+	config.Log.Debugf("Checking if layer exists at path: %s", basePath)
+	// Check if the directory exists
+	if _, err := os.Stat(basePath); os.IsNotExist(err) {
+		return false // Directory does not exist
+	}
+	return true // Directory exists
+}
+
 // buildLowerDir constructs the lowerdir path for overlayfs mounting.
 //
 // The lowerdir for a RUN instruction depends on the previous instruction:
@@ -26,17 +44,12 @@ import (
 // Returns:
 //   - string: The formatted lowerdir path for overlayfs mount
 func buildLowerDir(state *BuildState) string {
-	var previousLayer string
-	if state.Instruction == "FROM" {
-		previousLayer = state.CurrentLayer.GetLowerDir()
-	} else {
-		previousLayer = state.CurrentLayer.GetUpperDir()
+	var latestLayer = state.CurrentLayer
+	if state.CurrentInstructionType == "FROM" {
+		return latestLayer.GetLowerDir()
 	}
-	newLowerDir := previousLayer
-	if state.CurrentLayer.GetLowerDir() != "" && state.Instruction != "FROM" {
-		newLowerDir = state.CurrentLayer.GetLowerDir() + ":" + previousLayer
-	}
-	return newLowerDir
+	return latestLayer.GetLowerDir() + ":" + latestLayer.GetUpperDir()
+
 }
 
 // prepareCommandArgs constructs the argument slice for container execution.
