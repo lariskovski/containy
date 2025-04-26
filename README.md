@@ -27,6 +27,12 @@ Replace `<layer-id>` with the actual ID of the layer you want to run.
 - Go 1.23.4 or higher.
 - Root privileges to execute container operations.
 
+## Tests
+
+```
+go test -v ./internal/...
+```
+
 ## Cleanup
 To unmount all overlay filesystems and clean up temporary files:
 ```bash
