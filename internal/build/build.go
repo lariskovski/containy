@@ -35,8 +35,6 @@ func Build(filepath, alias string) error {
 
 	buildState := &BuildState{}
 
-	totalInstructions := len(instructions)
-
 	for step, instruction := range instructions {
 		instructionType := instruction.GetType()
 		instructionArgs := instruction.GetArgs()
@@ -65,18 +63,25 @@ func Build(filepath, alias string) error {
 
 		// Update the build state with the new layer and instruction
 		updateBuildState(buildState, layer, instructionType)
-
-		// Create an alias for the last layer
-		if step == totalInstructions-1 {
-			if alias == "" {
-				alias = layer.GetID()
-			}
-			if err := layer.CreateAlias(alias); err != nil {
-				return fmt.Errorf("failed to create alias for layer %s: %w", layer.GetID(), err)
-			}
-			config.Log.Infof("Create alias %s", alias)
-		}
 	}
+
+	// Create an alias for the last layer if specified
+	// This is useful for tagging the final image with a name
+	// and version (e.g., "myimage:latest")
+	// If no alias is provided, use the layer ID as the alias
+	// This allows users to refer to the final image by a friendly name
+	// instead of a hash
+	if buildState.CurrentLayer != nil {
+		finalAlias := alias
+		if finalAlias == "" {
+			finalAlias = buildState.CurrentLayer.GetID()
+		}
+		if err := buildState.CurrentLayer.CreateAlias(finalAlias); err != nil {
+			return fmt.Errorf("failed to create alias for layer %s: %w", buildState.CurrentLayer.GetID(), err)
+		}
+		config.Log.Infof("Created alias %s -> %s", finalAlias, buildState.CurrentLayer.GetMergedDir())
+	}
+	
 
 	config.Log.Infof("Container build completed successfully.")
 	return nil
