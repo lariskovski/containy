@@ -40,7 +40,7 @@ func Create(args []string) error {
 
 	// Check if the overlay directory is an alias
 	// If it is, resolve the alias to the actual directory
-	alias, err := os.Readlink(overlayDir)
+	alias, err := os.Readlink(config.AliasDir + overlayDir)
 	if err == nil  {
 		overlayDir = alias
 	}
